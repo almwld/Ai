@@ -17,10 +17,28 @@ workflows:
           include: true
           source: true
     scripts:
+      - name: Create fresh Android project
+        script: |
+          # إنشاء مشروع Flutter جديد في مجلد مؤقت
+          mkdir -p /tmp/fresh_project
+          cd /tmp/fresh_project
+          flutter create --org com.maestro.ai --project-name maestro_temp .
+          
+          # العودة إلى المشروع الأصلي ونسخ ملفات android
+          cd $CM_BUILD_DIR
+          rm -rf android ios
+          cp -r /tmp/fresh_project/android .
+          cp -r /tmp/fresh_project/ios .
+          
+          # تنظيف الملفات المؤقتة
+          rm -rf /tmp/fresh_project
+      
       - name: Get packages
         script: flutter pub get
+      
       - name: Build APK
         script: flutter build apk --release --split-per-abi
+      
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
     publishing:
