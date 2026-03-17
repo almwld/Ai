@@ -1,5 +1,4 @@
 import 'package:speech_to_text/speech_to_text.dart';
-import 'package:speech_to_text/speech_recognition_result.dart';
 
 class VoiceService {
   final SpeechToText _speech = SpeechToText();
@@ -15,16 +14,4 @@ class VoiceService {
   }
 
   List<LocaleName> get availableLocales => _availableLocales;
-
-  Future<void> startListening(Function(SpeechRecognitionResult) onResult) async {
-    if (!_isAvailable) return;
-    await _speech.listen(
-      onResult: onResult,
-      localeId: 'ar_SA',
-    );
-  }
-
-  Future<void> stopListening() async {
-    await _speech.stop();
-  }
 }
