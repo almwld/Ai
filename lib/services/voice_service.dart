@@ -31,12 +31,25 @@ class VoiceService {
     );
   }
 
-  Future<void> stopListening() async {
+  Future<bool> stopListening() async {
     await _speech.stop();
+    return true;
   }
 
-  Future<void> speak(String text) async {
+  void cancelListening() => stopListening();
+
+  Future<void> speak(String text, {double? rate, double? volume}) async {
+    if (rate != null) await _tts.setSpeechRate(rate);
+    if (volume != null) await _tts.setVolume(volume);
     await _tts.speak(text);
+  }
+
+  Future<void> stopSpeaking() async {
+    await _tts.stop();
+  }
+
+  Future<void> setLanguage(String language) async {
+    await _tts.setLanguage(language);
   }
 
   Future<void> setSpeechRate(double rate) async {
