@@ -22,7 +22,11 @@ class AppTheme {
   static const Color lightSurface = Color(0xFFFFFFFF);
   static const Color lightCard = Color(0xFFFAFAFA);
 
-  // مرادف لـ darkCard لتجنب الأخطاء
+  // ألوان إضافية مطلوبة في الشاشات
+  static const Color darkSlate = Color(0xFF2C3E50);   // رمادي غامق مزرق
+  static const Color deepNavy = Color(0xFF0A1929);    // أزرق داكن جداً
+
+  // مرادف لـ darkCard
   static const Color cardDark = darkCard;
 
   static ThemeData get lightTheme {
