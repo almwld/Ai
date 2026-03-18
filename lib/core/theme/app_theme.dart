@@ -17,10 +17,13 @@ class AppTheme {
   // ألوان الخلفية والبطاقات
   static const Color darkBackground = Color(0xFF121212);
   static const Color darkSurface = Color(0xFF1E1E1E);
-  static const Color darkCard = Color(0xFF2C2C2C);  // تم إضافتها
+  static const Color darkCard = Color(0xFF2C2C2C);
   static const Color lightBackground = Color(0xFFF5F5F5);
   static const Color lightSurface = Color(0xFFFFFFFF);
   static const Color lightCard = Color(0xFFFAFAFA);
+
+  // مرادف لـ darkCard لتجنب الأخطاء
+  static const Color cardDark = darkCard;
 
   static ThemeData get lightTheme {
     return ThemeData(

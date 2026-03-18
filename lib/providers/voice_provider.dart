@@ -1,89 +1,55 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/material.dart';
 import '../services/voice_service.dart';
 
-final voiceProvider = StateNotifierProvider<VoiceNotifier, VoiceState>((ref) {
-  return VoiceNotifier();
-});
-
-class VoiceState {
-  final bool isInitialized;
-  final bool isListening;
-  final String lastWords;
-  final String? error;
-  final List<String> availableLanguages;
-  final String selectedLanguage;
-
-  VoiceState({
-    this.isInitialized = false,
-    this.isListening = false,
-    this.lastWords = '',
-    this.error,
-    this.availableLanguages = const [],
-    this.selectedLanguage = 'ar_SA',
-  });
-
-  VoiceState copyWith({
-    bool? isInitialized,
-    bool? isListening,
-    String? lastWords,
-    String? error,
-    List<String>? availableLanguages,
-    String? selectedLanguage,
-  }) {
-    return VoiceState(
-      isInitialized: isInitialized ?? this.isInitialized,
-      isListening: isListening ?? this.isListening,
-      lastWords: lastWords ?? this.lastWords,
-      error: error,
-      availableLanguages: availableLanguages ?? this.availableLanguages,
-      selectedLanguage: selectedLanguage ?? this.selectedLanguage,
-    );
-  }
-}
-
-class VoiceNotifier extends StateNotifier<VoiceState> {
+class VoiceProvider extends ChangeNotifier {
   final VoiceService _voiceService = VoiceService();
 
-  VoiceNotifier() : super(VoiceState()) {
-    _initialize();
-  }
+  bool _isInitialized = false;
+  bool _isListening = false;
+  String _lastWords = '';
+  String _lastError = '';
+  List<String> _availableLanguages = [];
 
-  Future<void> _initialize() async {
-    await _voiceService.initialize();
-    
-    // Listen to speech stream
-    _voiceService.speechStream.listen((words) {
-      state = state.copyWith(lastWords: words);
-    });
+  // Getters
+  bool get isInitialized => _isInitialized;
+  bool get isListening => _isListening;
+  String get lastWords => _lastWords;
+  String get lastError => _lastError;
+  List<String> get availableLanguages => _availableLanguages;
 
-    // Listen to listening state
+  VoiceProvider() {
+    _init();
+    // الاستماع إلى حالة الاستماع من الـ Service
     _voiceService.listeningState.listen((isListening) {
-      state = state.copyWith(isListening: isListening);
+      _isListening = isListening;
+      notifyListeners();
     });
-
-    // Listen to errors
+    // الاستماع إلى الأخطاء
     _voiceService.errorStream.listen((error) {
-      state = state.copyWith(error: error);
+      _lastError = error;
+      notifyListeners();
     });
-
-    // Get available languages
-    final languages = await _voiceService.getAvailableLanguages();
-
-    state = state.copyWith(
-      isInitialized: true,
-      availableLanguages: languages,
-    );
   }
 
-  Future<bool> startListening({
-    Duration? listenFor,
-    Duration? pauseFor,
-  }) async {
-    state = state.copyWith(error: null, lastWords: '');
-    return await _voiceService.startListening(
-      listenFor: listenFor,
-      pauseFor: pauseFor,
-    );
+  Future<void> _init() async {
+    _isInitialized = await _voiceService.initialize();
+    if (_isInitialized) {
+      await loadLanguages();
+    }
+    notifyListeners();
+  }
+
+  Future<void> loadLanguages() async {
+    _availableLanguages = await _voiceService.getAvailableLanguages();
+    notifyListeners();
+  }
+
+  Future<void> startListening() async {
+    if (!_isInitialized) return;
+    await _voiceService.startListening((result) {
+      _lastWords = result;
+      notifyListeners();
+    });
   }
 
   Future<bool> stopListening() async {
@@ -94,30 +60,26 @@ class VoiceNotifier extends StateNotifier<VoiceState> {
     return await _voiceService.cancelListening();
   }
 
-  Future<void> speak(String text, {double? rate, double? volume}) async {
-    await _voiceService.speak(text, rate: rate, volume: volume);
+  Future<void> speak(String text) async {
+    await _voiceService.speak(text);
   }
 
   Future<void> stopSpeaking() async {
     await _voiceService.stopSpeaking();
   }
 
-  Future<void> setLanguage(String languageCode) async {
-    await _voiceService.setLanguage(languageCode);
-    state = state.copyWith(selectedLanguage: languageCode);
-  }
-
-  Future<void> setSpeechRate(double rate) async {
-    await _voiceService.setSpeechRate(rate);
+  Future<void> setLanguage(String language) async {
+    await _voiceService.setLanguage(language);
   }
 
   void clearLastWords() {
-    _voiceService.clearLastWords();
-    state = state.copyWith(lastWords: '');
+    _lastWords = '';
+    notifyListeners();
   }
 
   void clearError() {
-    state = state.copyWith(error: null);
+    _lastError = '';
+    notifyListeners();
   }
 
   @override
