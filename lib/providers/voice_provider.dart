@@ -14,7 +14,7 @@ class VoiceProvider extends ChangeNotifier {
   // Getters
   bool get isInitialized => _isInitialized;
   VoiceState get state => _state;
-  bool get isListening => _state == VoiceState.listending; // تم التصحيح
+  bool get isListening => _state == VoiceState.listening; // تم التصحيح
   String get lastWords => _lastWords;
   String get lastError => _lastError;
   List<String> get availableLanguages => _availableLanguages;

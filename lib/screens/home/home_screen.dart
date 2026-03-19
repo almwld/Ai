@@ -41,12 +41,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   }
 
   Future<void> _stopListening() async {
-    final voiceProvider = ref.read(voiceProvider);
+    final voice = ref.read(voiceProvider);
     await ref.read(voiceProvider.notifier).stopListening();
 
     // Process the recognized text
-    if (voiceProvider.lastWords.isNotEmpty) {
-      await ref.read(commandProvider.notifier).processCommand(voiceProvider.lastWords);
+    if (voice.lastWords.isNotEmpty) {
+      await ref.read(commandProvider.notifier).processCommand(voice.lastWords);
     }
   }
 
@@ -54,20 +54,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     ref.read(commandProvider.notifier).executeQuickCommand(command);
   }
 
-  String _getStatusText(VoiceProvider voiceProvider, CommandProvider commandProvider) {
-    final voiceState = voiceProvider.state;
-    final commandState = commandProvider.state;
+  String _getStatusText(VoiceProvider voice, CommandState commandState) {
+    final voiceState = voice.state;
 
     if (voiceState == VoiceState.listening) {
       return 'استمع... تحدث الآن';
     }
-    if (commandState == CommandState.processing) {
+    if (commandState.isProcessing) {
       return 'جاري معالجة الأمر...';
     }
-    if (commandProvider.lastCommand != null) {
-      if (commandProvider.lastCommand!.success == true) {
+    if (commandState.lastCommand != null) {
+      if (commandState.lastCommand!.success == true) {
         return 'تم تنفيذ الأمر بنجاح ✓';
-      } else if (commandProvider.lastCommand!.success == false) {
+      } else if (commandState.lastCommand!.success == false) {
         return 'فشل تنفيذ الأمر ✗';
       }
     }
@@ -76,8 +75,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    final voiceProvider = ref.watch(voiceProvider);
-    final commandProvider = ref.watch(commandProvider);
+    final voice = ref.watch(voiceProvider);
+    final commandState = ref.watch(commandProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.deepNavy,
@@ -205,7 +204,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                     children: [
                       // Status text
                       Text(
-                        _getStatusText(voiceProvider, commandProvider),
+                        _getStatusText(voice, commandState),
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.7),
                           fontSize: 16,
@@ -216,16 +215,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
 
                       // Glowing brain
                       GlowingBrain(
-                        isListening: voiceProvider.isListening,
+                        isListening: voice.isListening,
                         pulseController: _pulseController,
                       ),
 
                       const SizedBox(height: 40),
 
                       // Last command result
-                      if (commandProvider.lastCommand != null)
+                      if (commandState.lastCommand != null)
                         CommandResultCard(
-                          command: commandProvider.lastCommand!,
+                          command: commandState.lastCommand!,
                         ).animate().slideY(
                           begin: 0.5,
                           end: 0,
@@ -237,7 +236,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
 
                       // Voice visualizer and mic button
                       VoiceVisualizer(
-                        isListening: voiceProvider.isListening,
+                        isListening: voice.isListening,
                         onListeningStart: _startListening,
                         onListeningStop: _stopListening,
                       ),
