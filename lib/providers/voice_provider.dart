@@ -14,18 +14,17 @@ class VoiceProvider extends ChangeNotifier {
   // Getters
   bool get isInitialized => _isInitialized;
   VoiceState get state => _state;
+  bool get isListening => _state == VoiceState.listending; // تم التصحيح
   String get lastWords => _lastWords;
   String get lastError => _lastError;
   List<String> get availableLanguages => _availableLanguages;
 
   VoiceProvider() {
     _init();
-    // الاستماع إلى حالة الاستماع من الـ Service
     _voiceService.listeningState.listen((isListening) {
       _state = isListening ? VoiceState.listening : VoiceState.idle;
       notifyListeners();
     });
-    // الاستماع إلى الأخطاء
     _voiceService.errorStream.listen((error) {
       _lastError = error;
       _state = VoiceState.error;
@@ -57,7 +56,7 @@ class VoiceProvider extends ChangeNotifier {
     if (!_isInitialized) return;
     _state = VoiceState.listening;
     notifyListeners();
-    
+
     await _voiceService.startListening((result) {
       _lastWords = result;
       _state = VoiceState.processing;

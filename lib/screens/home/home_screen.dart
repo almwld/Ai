@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/voice_provider.dart';
 import '../../providers/command_provider.dart';
+import '../../models/voice_state.dart';
+import '../../models/command_state.dart';
 import 'widgets/glowing_brain.dart';
 import 'widgets/voice_visualizer.dart';
 import 'widgets/command_result_card.dart';
@@ -39,12 +41,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   }
 
   Future<void> _stopListening() async {
-    final voiceState = ref.read(voiceProvider);
+    final voiceProvider = ref.read(voiceProvider);
     await ref.read(voiceProvider.notifier).stopListening();
-    
+
     // Process the recognized text
-    if (voiceState.lastWords.isNotEmpty) {
-      await ref.read(commandProvider.notifier).processCommand(voiceState.lastWords);
+    if (voiceProvider.lastWords.isNotEmpty) {
+      await ref.read(commandProvider.notifier).processCommand(voiceProvider.lastWords);
     }
   }
 
@@ -52,17 +54,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     ref.read(commandProvider.notifier).executeQuickCommand(command);
   }
 
-  String _getStatusText(VoiceState voiceState, CommandState commandState) {
-    if (voiceState.isListening) {
+  String _getStatusText(VoiceProvider voiceProvider, CommandProvider commandProvider) {
+    final voiceState = voiceProvider.state;
+    final commandState = commandProvider.state;
+
+    if (voiceState == VoiceState.listening) {
       return 'استمع... تحدث الآن';
     }
-    if (commandState.isProcessing) {
+    if (commandState == CommandState.processing) {
       return 'جاري معالجة الأمر...';
     }
-    if (commandState.lastCommand != null) {
-      if (commandState.lastCommand!.success == true) {
+    if (commandProvider.lastCommand != null) {
+      if (commandProvider.lastCommand!.success == true) {
         return 'تم تنفيذ الأمر بنجاح ✓';
-      } else if (commandState.lastCommand!.success == false) {
+      } else if (commandProvider.lastCommand!.success == false) {
         return 'فشل تنفيذ الأمر ✗';
       }
     }
@@ -71,8 +76,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    final voiceState = ref.watch(voiceProvider);
-    final commandState = ref.watch(commandProvider);
+    final voiceProvider = ref.watch(voiceProvider);
+    final commandProvider = ref.watch(commandProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.deepNavy,
@@ -200,7 +205,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                     children: [
                       // Status text
                       Text(
-                        _getStatusText(voiceState, commandState),
+                        _getStatusText(voiceProvider, commandProvider),
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.7),
                           fontSize: 16,
@@ -211,28 +216,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
 
                       // Glowing brain
                       GlowingBrain(
-                        isListening: voiceState.isListening,
+                        isListening: voiceProvider.isListening,
                         pulseController: _pulseController,
                       ),
 
                       const SizedBox(height: 40),
 
                       // Last command result
-                      if (commandState.lastCommand != null)
+                      if (commandProvider.lastCommand != null)
                         CommandResultCard(
-                          command: commandState.lastCommand!,
+                          command: commandProvider.lastCommand!,
                         ).animate().slideY(
-                              begin: 0.5,
-                              end: 0,
-                              duration: 500.ms,
-                              curve: Curves.easeOut,
-                            ),
+                          begin: 0.5,
+                          end: 0,
+                          duration: 500.ms,
+                          curve: Curves.easeOut,
+                        ),
 
                       const SizedBox(height: 20),
 
                       // Voice visualizer and mic button
                       VoiceVisualizer(
-                        isListening: voiceState.isListening,
+                        isListening: voiceProvider.isListening,
                         onListeningStart: _startListening,
                         onListeningStop: _stopListening,
                       ),
