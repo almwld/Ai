@@ -25,6 +25,7 @@ class AppTheme {
   // ألوان إضافية مطلوبة في الشاشات
   static const Color darkSlate = Color(0xFF2C3E50);   // رمادي غامق مزرق
   static const Color deepNavy = Color(0xFF0A1929);    // أزرق داكن جداً
+  static const Color textSecondary = Color(0xFF757575); // رمادي للنصوص الثانوية
 
   // مرادف لـ darkCard
   static const Color cardDark = darkCard;
