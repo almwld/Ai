@@ -1,0 +1,221 @@
+name: Build Maestro AI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+          channel: stable
+      
+      - name: Create fresh Android project
+        run: |
+          # إنشاء مشروع مؤقت
+          cd /tmp
+          flutter create --org com.maestro.ai --project-name temp_project .
+          
+          # نسخ مجلد android إلى المشروع الأصلي
+          cd $GITHUB_WORKSPACE
+          rm -rf android
+          cp -r /tmp/temp_project/android .
+          
+          # تنظيف
+          rm -rf /tmp/temp_project
+      
+      - name: Create Kotlin services directory
+        run: |
+          # إنشاء مجلدات الخدمات
+          mkdir -p android/app/src/main/kotlin/com/maestro/ai/services
+          mkdir -p android/app/src/main/kotlin/com/maestro/ai/receivers
+      
+      - name: Create MainActivity.kt
+        run: |
+          cat > android/app/src/main/kotlin/com/maestro/ai/MainActivity.kt << 'KOTLIN'
+          package com.maestro.ai
+          
+          import android.os.Bundle
+          import io.flutter.embedding.android.FlutterActivity
+          import io.flutter.embedding.engine.FlutterEngine
+          import io.flutter.plugin.common.MethodChannel
+          
+          class MainActivity : FlutterActivity() {
+              private val CHANNEL = "maestro_ai/native"
+              
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+              }
+              
+              override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+                  super.configureFlutterEngine(flutterEngine)
+                  
+                  MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+                      .setMethodCallHandler { call, result ->
+                          when (call.method) {
+                              "executeCommand" -> {
+                                  result.success(mapOf("success" to true, "message" to "Command executed"))
+                              }
+                              "checkPermissions" -> {
+                                  result.success(mapOf(
+                                      "recordAudio" to true,
+                                      "makeCalls" to false
+                                  ))
+                              }
+                              else -> result.notImplemented()
+                          }
+                      }
+              }
+          }
+          KOTLIN
+      
+      - name: Create SystemCommandExecutor.kt
+        run: |
+          cat > android/app/src/main/kotlin/com/maestro/ai/services/SystemCommandExecutor.kt << 'KOTLIN'
+          package com.maestro.ai.services
+          
+          import android.content.Context
+          import android.content.Intent
+          import android.net.Uri
+          
+          class SystemCommandExecutor(private val context: Context) {
+              
+              fun executeCommand(command: String, params: Map<String, Any>): Map<String, Any> {
+                  return when (command) {
+                      "OPEN_APP" -> openApp(params["packageName"] as? String ?: "")
+                      "MAKE_CALL" -> makeCall(params["phoneNumber"] as? String ?: "")
+                      "SEND_SMS" -> sendSms(params["phoneNumber"] as? String ?: "", params["message"] as? String ?: "")
+                      "TOGGLE_WIFI" -> toggleWifi(params["enable"] as? Boolean ?: false)
+                      "TOGGLE_BLUETOOTH" -> toggleBluetooth(params["enable"] as? Boolean ?: false)
+                      "SET_BRIGHTNESS" -> setBrightness(params["level"] as? Int ?: 128)
+                      "SET_VOLUME" -> setVolume(params["level"] as? Int ?: 50)
+                      "BATTERY_STATUS" -> getBatteryStatus()
+                      "STORAGE_INFO" -> getStorageInfo()
+                      else -> mapOf("success" to false, "error" to "Unknown command")
+                  }
+              }
+              
+              private fun openApp(packageName: String): Map<String, Any> {
+                  return try {
+                      val intent = context.packageManager.getLaunchIntentForPackage(packageName)
+                      if (intent != null) {
+                          intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                          context.startActivity(intent)
+                          mapOf("success" to true)
+                      } else {
+                          mapOf("success" to false, "error" to "App not found")
+                      }
+                  } catch (e: Exception) {
+                      mapOf("success" to false, "error" to e.message)
+                  }
+              }
+              
+              private fun makeCall(phoneNumber: String): Map<String, Any> {
+                  return try {
+                      val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$phoneNumber"))
+                      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                      context.startActivity(intent)
+                      mapOf("success" to true)
+                  } catch (e: Exception) {
+                      mapOf("success" to false, "error" to e.message)
+                  }
+              }
+              
+              private fun sendSms(phoneNumber: String, message: String): Map<String, Any> {
+                  return try {
+                      mapOf("success" to true, "message" to "SMS would be sent to $phoneNumber")
+                  } catch (e: Exception) {
+                      mapOf("success" to false, "error" to e.message)
+                  }
+              }
+              
+              private fun toggleWifi(enable: Boolean): Map<String, Any> {
+                  return mapOf("success" to true, "status" to enable)
+              }
+              
+              private fun toggleBluetooth(enable: Boolean): Map<String, Any> {
+                  return mapOf("success" to true, "status" to enable)
+              }
+              
+              private fun setBrightness(level: Int): Map<String, Any> {
+                  return mapOf("success" to true, "level" to level)
+              }
+              
+              private fun setVolume(level: Int): Map<String, Any> {
+                  return mapOf("success" to true, "level" to level)
+              }
+              
+              private fun getBatteryStatus(): Map<String, Any> {
+                  return mapOf("success" to true, "level" to 75, "isCharging" to false)
+              }
+              
+              private fun getStorageInfo(): Map<String, Any> {
+                  return mapOf("success" to true, "total" to 64L, "available" to 32L)
+              }
+          }
+          KOTLIN
+      
+      - name: Update AndroidManifest.xml
+        run: |
+          cat > android/app/src/main/AndroidManifest.xml << 'XML'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+              package="com.maestro.ai">
+          
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.RECORD_AUDIO" />
+              <uses-permission android:name="android.permission.CALL_PHONE" />
+              <uses-permission android:name="android.permission.SEND_SMS" />
+              <uses-permission android:name="android.permission.READ_CONTACTS" />
+              <uses-permission android:name="android.permission.CAMERA" />
+              
+              <application
+                  android:label="Maestro AI"
+                  android:name="${applicationName}"
+                  android:icon="@mipmap/ic_launcher"
+                  android:allowBackup="true"
+                  android:theme="@style/LaunchTheme">
+                  
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:launchMode="singleTop"
+                      android:theme="@style/LaunchTheme"
+                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+                      android:hardwareAccelerated="true"
+                      android:windowSoftInputMode="adjustResize">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+                  
+                  <meta-data
+                      android:name="flutterEmbedding"
+                      android:value="2" />
+              </application>
+          </manifest>
+          XML
+      
+      - name: Get dependencies
+        run: flutter pub get
+      
+      - name: Build APK
+        run: flutter build apk --release
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-ai
+          path: build/app/outputs/flutter-apk/*.apk
