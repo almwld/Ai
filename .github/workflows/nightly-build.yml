@@ -1,0 +1,32 @@
+name: Nightly Build
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Nightly
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: تحميل الكود
+        uses: actions/checkout@v4
+      
+      - name: إعداد Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+      
+      - name: تثبيت الحزم
+        run: flutter pub get
+      
+      - name: بناء APK
+        run: flutter build apk --debug
+      
+      - name: رفع APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-build
+          path: build/app/outputs/flutter-apk/app-debug.apk
