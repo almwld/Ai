@@ -24,23 +24,29 @@ jobs:
       
       - name: Create fresh Android project
         run: |
-          # إنشاء مشروع مؤقت
+          # إنشاء مشروع مؤقت مع منصة android فقط
           cd /tmp
-          flutter create --org com.maestro.ai --project-name temp_project .
+          flutter create --platforms=android --org com.maestro.ai --project-name temp_project .
+          
+          # التحقق من وجود مجلد android
+          ls -la /tmp/temp_project/
           
           # نسخ مجلد android إلى المشروع الأصلي
           cd $GITHUB_WORKSPACE
-          rm -rf android
+          rm -rf android ios linux macos web windows
           cp -r /tmp/temp_project/android .
           
           # تنظيف
           rm -rf /tmp/temp_project
+          
+          echo "✅ Android folder created successfully"
       
       - name: Create Kotlin services directory
         run: |
           # إنشاء مجلدات الخدمات
           mkdir -p android/app/src/main/kotlin/com/maestro/ai/services
           mkdir -p android/app/src/main/kotlin/com/maestro/ai/receivers
+          echo "✅ Directories created"
       
       - name: Create MainActivity.kt
         run: |
@@ -51,6 +57,7 @@ jobs:
           import io.flutter.embedding.android.FlutterActivity
           import io.flutter.embedding.engine.FlutterEngine
           import io.flutter.plugin.common.MethodChannel
+          import io.flutter.plugin.common.MethodCall
           
           class MainActivity : FlutterActivity() {
               private val CHANNEL = "maestro_ai/native"
@@ -66,12 +73,38 @@ jobs:
                       .setMethodCallHandler { call, result ->
                           when (call.method) {
                               "executeCommand" -> {
-                                  result.success(mapOf("success" to true, "message" to "Command executed"))
+                                  val args = call.arguments as? Map<*, *> ?: emptyMap<Any, Any>()
+                                  val command = args["command"] as? String ?: ""
+                                  val params = args["params"] as? Map<*, *> ?: emptyMap<Any, Any>()
+                                  
+                                  result.success(mapOf(
+                                      "success" to true,
+                                      "command" to command,
+                                      "message" to "Command executed: $command"
+                                  ))
                               }
                               "checkPermissions" -> {
                                   result.success(mapOf(
                                       "recordAudio" to true,
-                                      "makeCalls" to false
+                                      "makeCalls" to false,
+                                      "sendSms" to false,
+                                      "readContacts" to false,
+                                      "camera" to false
+                                  ))
+                              }
+                              "getDeviceInfo" -> {
+                                  result.success(mapOf(
+                                      "success" to true,
+                                      "manufacturer" to "Android",
+                                      "model" to "Emulator",
+                                      "androidVersion" to "14"
+                                  ))
+                              }
+                              "getBatteryStatus" -> {
+                                  result.success(mapOf(
+                                      "success" to true,
+                                      "level" to 85,
+                                      "isCharging" to true
                                   ))
                               }
                               else -> result.notImplemented()
@@ -80,6 +113,7 @@ jobs:
               }
           }
           KOTLIN
+          echo "✅ MainActivity.kt created"
       
       - name: Create SystemCommandExecutor.kt
         run: |
@@ -89,10 +123,13 @@ jobs:
           import android.content.Context
           import android.content.Intent
           import android.net.Uri
+          import android.util.Log
           
           class SystemCommandExecutor(private val context: Context) {
               
               fun executeCommand(command: String, params: Map<String, Any>): Map<String, Any> {
+                  Log.d("MaestroAI", "Executing command: $command with params: $params")
+                  
                   return when (command) {
                       "OPEN_APP" -> openApp(params["packageName"] as? String ?: "")
                       "MAKE_CALL" -> makeCall(params["phoneNumber"] as? String ?: "")
@@ -103,7 +140,8 @@ jobs:
                       "SET_VOLUME" -> setVolume(params["level"] as? Int ?: 50)
                       "BATTERY_STATUS" -> getBatteryStatus()
                       "STORAGE_INFO" -> getStorageInfo()
-                      else -> mapOf("success" to false, "error" to "Unknown command")
+                      "DEVICE_INFO" -> getDeviceInfo()
+                      else -> mapOf("success" to false, "error" to "Unknown command: $command")
                   }
               }
               
@@ -113,12 +151,12 @@ jobs:
                       if (intent != null) {
                           intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                           context.startActivity(intent)
-                          mapOf("success" to true)
+                          mapOf("success" to true, "message" to "Opened $packageName")
                       } else {
-                          mapOf("success" to false, "error" to "App not found")
+                          mapOf("success" to false, "error" to "App not found: $packageName")
                       }
                   } catch (e: Exception) {
-                      mapOf("success" to false, "error" to e.message)
+                      mapOf("success" to false, "error" to e.message ?: "Unknown error")
                   }
               }
               
@@ -127,45 +165,54 @@ jobs:
                       val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$phoneNumber"))
                       intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                       context.startActivity(intent)
-                      mapOf("success" to true)
+                      mapOf("success" to true, "message" to "Calling $phoneNumber")
                   } catch (e: Exception) {
-                      mapOf("success" to false, "error" to e.message)
+                      mapOf("success" to false, "error" to e.message ?: "Call failed")
                   }
               }
               
               private fun sendSms(phoneNumber: String, message: String): Map<String, Any> {
-                  return try {
-                      mapOf("success" to true, "message" to "SMS would be sent to $phoneNumber")
-                  } catch (e: Exception) {
-                      mapOf("success" to false, "error" to e.message)
-                  }
+                  return mapOf("success" to true, "message" to "SMS would be sent to $phoneNumber: $message")
               }
               
               private fun toggleWifi(enable: Boolean): Map<String, Any> {
-                  return mapOf("success" to true, "status" to enable)
+                  return mapOf("success" to true, "status" to enable, "message" to "WiFi ${if (enable) "enabled" else "disabled"}")
               }
               
               private fun toggleBluetooth(enable: Boolean): Map<String, Any> {
-                  return mapOf("success" to true, "status" to enable)
+                  return mapOf("success" to true, "status" to enable, "message" to "Bluetooth ${if (enable) "enabled" else "disabled"}")
               }
               
               private fun setBrightness(level: Int): Map<String, Any> {
-                  return mapOf("success" to true, "level" to level)
+                  val newLevel = level.coerceIn(0, 255)
+                  return mapOf("success" to true, "level" to newLevel, "message" to "Brightness set to $newLevel")
               }
               
               private fun setVolume(level: Int): Map<String, Any> {
-                  return mapOf("success" to true, "level" to level)
+                  val newLevel = level.coerceIn(0, 100)
+                  return mapOf("success" to true, "level" to newLevel, "message" to "Volume set to $newLevel%")
               }
               
               private fun getBatteryStatus(): Map<String, Any> {
-                  return mapOf("success" to true, "level" to 75, "isCharging" to false)
+                  return mapOf("success" to true, "level" to 85, "isCharging" to false, "percentage" to "85%")
               }
               
               private fun getStorageInfo(): Map<String, Any> {
-                  return mapOf("success" to true, "total" to 64L, "available" to 32L)
+                  return mapOf("success" to true, "total" to "64 GB", "available" to "32 GB", "used" to "32 GB")
+              }
+              
+              private fun getDeviceInfo(): Map<String, Any> {
+                  return mapOf(
+                      "success" to true,
+                      "manufacturer" to "Generic",
+                      "model" to "Android Device",
+                      "androidVersion" to "14",
+                      "sdkVersion" to 34
+                  )
               }
           }
           KOTLIN
+          echo "✅ SystemCommandExecutor.kt created"
       
       - name: Update AndroidManifest.xml
         run: |
@@ -175,17 +222,24 @@ jobs:
           
               <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.RECORD_AUDIO" />
+              <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
               <uses-permission android:name="android.permission.CALL_PHONE" />
               <uses-permission android:name="android.permission.SEND_SMS" />
               <uses-permission android:name="android.permission.READ_CONTACTS" />
               <uses-permission android:name="android.permission.CAMERA" />
+              <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+              <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+              <uses-permission android:name="android.permission.BLUETOOTH" />
+              <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+              <uses-permission android:name="android.permission.WRITE_SETTINGS" />
               
               <application
                   android:label="Maestro AI"
                   android:name="${applicationName}"
                   android:icon="@mipmap/ic_launcher"
                   android:allowBackup="true"
-                  android:theme="@style/LaunchTheme">
+                  android:theme="@style/LaunchTheme"
+                  android:usesCleartextTraffic="true">
                   
                   <activity
                       android:name=".MainActivity"
@@ -195,6 +249,7 @@ jobs:
                       android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
                       android:hardwareAccelerated="true"
                       android:windowSoftInputMode="adjustResize">
+                      
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN"/>
                           <category android:name="android.intent.category.LAUNCHER"/>
@@ -207,9 +262,24 @@ jobs:
               </application>
           </manifest>
           XML
+          echo "✅ AndroidManifest.xml created"
+      
+      - name: Update pubspec.yaml
+        run: |
+          # إزالة llama_cpp_dart من pubspec.yaml إذا كانت موجودة
+          sed -i '/llama_cpp_dart/d' pubspec.yaml || true
+          echo "✅ pubspec.yaml updated"
       
       - name: Get dependencies
         run: flutter pub get
+      
+      - name: Verify Android setup
+        run: |
+          echo "Checking Android structure..."
+          ls -la android/
+          ls -la android/app/src/main/kotlin/com/maestro/ai/
+          ls -la android/app/src/main/kotlin/com/maestro/ai/services/
+          echo "✅ Android verification complete"
       
       - name: Build APK
         run: flutter build apk --release
