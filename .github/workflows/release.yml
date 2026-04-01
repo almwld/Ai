@@ -14,21 +14,21 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: تحميل الكود
+      - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: إعداد Flutter
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.22.0'
       
-      - name: تثبيت الحزم
+      - name: Get dependencies
         run: flutter pub get
       
-      - name: بناء APK
+      - name: Build APK
         run: flutter build apk --release
       
-      - name: إنشاء الإصدار
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ github.event.inputs.version }}

@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import '../services/voice_service.dart';
-import '../models/voice_state.dart';
+
+enum VoiceState {
+  idle,
+  listening,
+  processing,
+  speaking,
+  error
+}
 
 class VoiceProvider extends ChangeNotifier {
   final VoiceService _voiceService = VoiceService();
@@ -10,21 +17,27 @@ class VoiceProvider extends ChangeNotifier {
   String _lastWords = '';
   String _lastError = '';
   List<String> _availableLanguages = [];
+  double _soundLevel = 0.0;
 
-  // Getters
   bool get isInitialized => _isInitialized;
   VoiceState get state => _state;
-  bool get isListening => _state == VoiceState.listening; // تم التصحيح
+  bool get isListening => _state == VoiceState.listening;
   String get lastWords => _lastWords;
   String get lastError => _lastError;
   List<String> get availableLanguages => _availableLanguages;
+  double get soundLevel => _soundLevel;
 
   VoiceProvider() {
     _init();
+    _setupListeners();
+  }
+
+  void _setupListeners() {
     _voiceService.listeningState.listen((isListening) {
       _state = isListening ? VoiceState.listening : VoiceState.idle;
       notifyListeners();
     });
+
     _voiceService.errorStream.listen((error) {
       _lastError = error;
       _state = VoiceState.error;
@@ -94,6 +107,11 @@ class VoiceProvider extends ChangeNotifier {
 
   Future<void> setLanguage(String language) async {
     await _voiceService.setLanguage(language);
+  }
+
+  void updateSoundLevel(double level) {
+    _soundLevel = level;
+    notifyListeners();
   }
 
   void clearLastWords() {

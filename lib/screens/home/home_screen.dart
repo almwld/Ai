@@ -4,9 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/voice_provider.dart';
 import '../../providers/command_provider.dart';
-import '../../models/voice_state.dart';
-import '../../models/command_state.dart'; // استيراد واحد فقط
-import '../../providers/providers.dart'; // تأكد من استيراد providers.dart
 import 'widgets/glowing_brain.dart';
 import 'widgets/voice_visualizer.dart';
 import 'widgets/command_result_card.dart';
@@ -45,49 +42,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     final voice = ref.read(voiceProvider);
     await ref.read(voiceProvider.notifier).stopListening();
 
-    // Process the recognized text
     if (voice.lastWords.isNotEmpty) {
-      await ref.read(commandProvider.notifier).processCommand(voice.lastWords);
+      await ref.read(commandProvider.notifier).executeCommand(voice.lastWords);
     }
   }
 
   void _executeQuickCommand(String command) {
-    ref.read(commandProvider.notifier).executeQuickCommand(command);
+    ref.read(commandProvider.notifier).executeCommand(command);
   }
 
-  String _getStatusText(VoiceProvider voiceProv, CommandState commandState) {
-    final voiceState = voiceProv.state;
-
-    if (voiceState == VoiceState.listening) {
-      return 'استمع... تحدث الآن';
+  String _getStatusText(VoiceProvider voiceProv, CommandUIState commandState) {
+    if (voiceProv.isListening) {
+      return '🎤 استمع... تحدث الآن';
     }
-    if (commandState == CommandState.processing) {
-      return 'جاري معالجة الأمر...';
+    if (commandState.isProcessing) {
+      return '⚡ جاري معالجة الأمر...';
     }
-    // لاحظ أننا لا نستطيع الوصول إلى lastCommand مباشرة من commandProvider هنا
-    // لأن commandProvider هو StateNotifierProvider وليس الكائن نفسه.
-    // سنحتاج إلى قراءة الحالة من الـ notifier بطريقة مختلفة.
-    // هذا الجزء سيحتاج إلى تعديل حسب بنية command_provider.dart.
-    // بشكل مؤقت، سنستخدم قيمة افتراضية.
-    return 'اضغط على الميكروفون للتحدث';
+    if (commandState.lastCommand != null && commandState.lastCommand!.success == true) {
+      return '✅ تم تنفيذ الأمر بنجاح';
+    }
+    if (commandState.lastCommand != null && commandState.lastCommand!.success == false) {
+      return '❌ فشل تنفيذ الأمر';
+    }
+    return '🎙️ اضغط على الميكروفون للتحدث';
   }
 
   @override
   Widget build(BuildContext context) {
     final voiceProv = ref.watch(voiceProvider);
-    // لقراءة حالة commandProvider، يجب أن نستخدم ref.watch على الـ provider نفسه
-    // ثم نصل إلى الخصائص عبر state
-    final commandState = ref.watch(commandProvider); // هذا يعيد كائن CommandState (من command_provider.dart)
-    // لكن لاحظ أن commandProvider هنا هو StateNotifierProvider، وليس الكائن.
-    // الطريقة الصحيحة: final commandNotifier = ref.watch(commandProvider.notifier); ثم الوصول إلى state.
-    // لكن بما أننا نريد الحالة فقط، يمكننا استخدام ref.watch(commandProvider) الذي يعيد CommandState.
+    final commandState = ref.watch(commandProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.deepNavy,
       body: SafeArea(
         child: Stack(
           children: [
-            // Animated background
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
@@ -103,8 +92,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                 ),
               ),
             ),
-
-            // Floating particles
             ...List.generate(15, (index) {
               return Positioned(
                 left: (index * 45.0) % MediaQuery.of(context).size.width,
@@ -124,10 +111,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                 ),
               );
             }),
-
             Column(
               children: [
-                // App bar
                 Padding(
                   padding: const EdgeInsets.all(20),
                   child: Row(
@@ -200,13 +185,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                     ],
                   ),
                 ),
-
-                // Main content
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Status text
                       Text(
                         _getStatusText(voiceProv, commandState),
                         style: TextStyle(
@@ -214,40 +196,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                           fontSize: 16,
                         ),
                       ).animate().fadeIn(),
-
                       const SizedBox(height: 20),
-
-                      // Glowing brain
                       GlowingBrain(
                         isListening: voiceProv.isListening,
                         pulseController: _pulseController,
                       ),
-
                       const SizedBox(height: 40),
-
-                      // Last command result - يجب الوصول إلى lastCommand عبر commandState
-                      // if (commandState.lastCommand != null)
-                      //   CommandResultCard(
-                      //     command: commandState.lastCommand!,
-                      //   ).animate().slideY(
-                      //     begin: 0.5,
-                      //     end: 0,
-                      //     duration: 500.ms,
-                      //     curve: Curves.easeOut,
-                      //   ),
-
+                      if (commandState.lastCommand != null)
+                        CommandResultCard(
+                          command: commandState.lastCommand!,
+                        ).animate().slideY(
+                          begin: 0.5,
+                          end: 0,
+                          duration: 500.ms,
+                          curve: Curves.easeOut,
+                        ),
                       const SizedBox(height: 20),
-
-                      // Voice visualizer and mic button
                       VoiceVisualizer(
                         isListening: voiceProv.isListening,
                         onListeningStart: _startListening,
                         onListeningStop: _stopListening,
                       ),
-
                       const SizedBox(height: 20),
-
-                      // Quick commands grid
                       QuickCommandsGrid(
                         onCommandSelected: _executeQuickCommand,
                       ),

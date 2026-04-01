@@ -6,11 +6,7 @@ import '../services/ai_service.dart';
 import '../services/native_bridge.dart';
 import '../services/learning_service.dart';
 
-final commandProvider = StateNotifierProvider<CommandNotifier, CommandState>((ref) {
-  return CommandNotifier();
-});
-
-class CommandState {
+class CommandUIState {
   final bool isProcessing;
   final CommandModel? lastCommand;
   final List<CommandModel> commandHistory;
@@ -18,7 +14,7 @@ class CommandState {
   final bool isModelLoaded;
   final double modelLoadProgress;
 
-  CommandState({
+  CommandUIState({
     this.isProcessing = false,
     this.lastCommand,
     this.commandHistory = const [],
@@ -27,7 +23,7 @@ class CommandState {
     this.modelLoadProgress = 0.0,
   });
 
-  CommandState copyWith({
+  CommandUIState copyWith({
     bool? isProcessing,
     CommandModel? lastCommand,
     List<CommandModel>? commandHistory,
@@ -35,7 +31,7 @@ class CommandState {
     bool? isModelLoaded,
     double? modelLoadProgress,
   }) {
-    return CommandState(
+    return CommandUIState(
       isProcessing: isProcessing ?? this.isProcessing,
       lastCommand: lastCommand ?? this.lastCommand,
       commandHistory: commandHistory ?? this.commandHistory,
@@ -46,12 +42,16 @@ class CommandState {
   }
 }
 
-class CommandNotifier extends StateNotifier<CommandState> {
+final commandProvider = StateNotifierProvider<CommandNotifier, CommandUIState>((ref) {
+  return CommandNotifier();
+});
+
+class CommandNotifier extends StateNotifier<CommandUIState> {
   final AIService _aiService = AIService();
   final LearningService _learningService = LearningService();
   late Box _commandsBox;
 
-  CommandNotifier() : super(CommandState()) {
+  CommandNotifier() : super(CommandUIState()) {
     _initialize();
   }
 
@@ -100,28 +100,27 @@ class CommandNotifier extends StateNotifier<CommandState> {
     }
   }
 
-  Future<void> processCommand(String userInput) async {
+  Future<void> executeCommand(String userInput) async {
     if (userInput.trim().isEmpty) return;
 
     state = state.copyWith(isProcessing: true, error: null);
 
     try {
-      // Process command with AI service
       final command = await _aiService.processCommand(userInput);
       
       state = state.copyWith(lastCommand: command);
 
-      // Execute the command
-      final result = await _executeCommand(command);
+      final result = await NativeBridge.executeCommand(
+        command.command,
+        params: command.params,
+      );
       
-      // Update command with result
       final updatedCommand = command.copyWith(
         success: result['success'] ?? false,
         result: result.toString(),
         errorMessage: result['error'],
       );
 
-      // Add to history
       final newHistory = [updatedCommand, ...state.commandHistory];
       if (newHistory.length > AppConstants.maxCommandHistory) {
         newHistory.removeLast();
@@ -133,10 +132,8 @@ class CommandNotifier extends StateNotifier<CommandState> {
         commandHistory: newHistory,
       );
 
-      // Save history
       await _saveCommandHistory();
 
-      // Record for learning
       await _learningService.recordCommandUsage(
         command.command,
         userInput,
@@ -151,91 +148,26 @@ class CommandNotifier extends StateNotifier<CommandState> {
     }
   }
 
-  Future<Map<String, dynamic>> _executeCommand(CommandModel command) async {
-    try {
-      return await NativeBridge.executeCommand(
-        command.command,
-        params: command.params,
-      );
-    } catch (e) {
-      return {
-        'success': false,
-        'error': 'Execution error: $e',
-      };
-    }
-  }
-
-  Future<void> executeQuickCommand(String commandType, {Map<String, dynamic> params = const {}}) async {
-    final command = CommandModel(
-      originalInput: commandType,
-      command: commandType,
-      params: params,
-      confidence: 1.0,
-      timestamp: DateTime.now(),
-    );
-
-    state = state.copyWith(lastCommand: command);
-
-    final result = await _executeCommand(command);
-    
-    final updatedCommand = command.copyWith(
-      success: result['success'] ?? false,
-      result: result.toString(),
-    );
-
-    final newHistory = [updatedCommand, ...state.commandHistory];
-    if (newHistory.length > AppConstants.maxCommandHistory) {
-      newHistory.removeLast();
-    }
-
-    state = state.copyWith(
-      lastCommand: updatedCommand,
-      commandHistory: newHistory,
-    );
-
-    await _saveCommandHistory();
-  }
-
-  Future<void> clearHistory() async {
-    state = state.copyWith(commandHistory: []);
-    await _commandsBox.delete('history');
-  }
-
-  Future<void> removeFromHistory(int index) async {
-    final newHistory = List<CommandModel>.from(state.commandHistory);
-    if (index >= 0 && index < newHistory.length) {
-      newHistory.removeAt(index);
-      state = state.copyWith(commandHistory: newHistory);
-      await _saveCommandHistory();
-    }
-  }
-
-  List<CommandModel> getSuccessfulCommands() {
-    return state.commandHistory.where((cmd) => cmd.success == true).toList();
-  }
-
-  List<CommandModel> getFailedCommands() {
-    return state.commandHistory.where((cmd) => cmd.success == false).toList();
-  }
-
-  List<CommandModel> getCommandsByType(String commandType) {
-    return state.commandHistory.where((cmd) => cmd.command == commandType).toList();
-  }
-
-  Map<String, int> getCommandTypeCounts() {
-    final counts = <String, int>{};
-    for (var cmd in state.commandHistory) {
-      counts[cmd.command] = (counts[cmd.command] ?? 0) + 1;
-    }
-    return counts;
+  void clearLastResult() {
+    state = state.copyWith(lastCommand: null);
   }
 
   void clearError() {
     state = state.copyWith(error: null);
   }
 
-  void clearLastCommand() {
-    state = state.copyWith(lastCommand: null);
+  void clearHistory() {
+    state = state.copyWith(commandHistory: []);
+    _commandsBox.delete('history');
+  }
+
+  void removeFromHistory(int index) {
+    final newHistory = List<CommandModel>.from(state.commandHistory);
+    if (index >= 0 && index < newHistory.length) {
+      newHistory.removeAt(index);
+      state = state.copyWith(commandHistory: newHistory);
+      _saveCommandHistory();
+    }
   }
 
   @override
