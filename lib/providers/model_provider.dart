@@ -2,11 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../core/constants/app_constants.dart';
 import '../services/download_service.dart';
-import '../services/ai_service.dart';
-
-final modelProvider = StateNotifierProvider<ModelNotifier, ModelState>((ref) {
-  return ModelNotifier();
-});
 
 class ModelState {
   final bool isDownloaded;
@@ -56,9 +51,12 @@ class ModelState {
   }
 }
 
+final modelProvider = StateNotifierProvider<ModelNotifier, ModelState>((ref) {
+  return ModelNotifier();
+});
+
 class ModelNotifier extends StateNotifier<ModelState> {
   final DownloadService _downloadService = DownloadService();
-  final AIService _aiService = AIService();
   late Box _settingsBox;
 
   ModelNotifier() : super(ModelState()) {
@@ -67,8 +65,6 @@ class ModelNotifier extends StateNotifier<ModelState> {
 
   Future<void> _initialize() async {
     _settingsBox = Hive.box(AppConstants.settingsBox);
-    
-    // Check if model is already downloaded
     final downloaded = await _downloadService.isModelDownloaded();
     final savedPath = _settingsBox.get(AppConstants.keyModelPath) as String?;
     final size = await _downloadService.getModelSize();
@@ -79,87 +75,55 @@ class ModelNotifier extends StateNotifier<ModelState> {
       modelSize: size,
       status: downloaded ? 'Model downloaded' : 'Model not downloaded',
     );
-
-    // Listen to download progress
-    _downloadService.progressStream.listen((progress) {
-      state = state.copyWith(
-        downloadProgress: progress.progress,
-        status: 'Downloading: ${progress.percentage}',
-      );
-    });
-
-    // Listen to download status
-    _downloadService.statusStream.listen((status) {
-      switch (status) {
-        case DownloadStatus.downloading:
-          state = state.copyWith(isDownloading: true);
-          break;
-        case DownloadStatus.completed:
-          _onDownloadComplete();
-          break;
-        case DownloadStatus.cancelled:
-          state = state.copyWith(
-            isDownloading: false,
-            downloadProgress: 0.0,
-            status: 'Download cancelled',
-          );
-          break;
-        case DownloadStatus.error:
-          state = state.copyWith(
-            isDownloading: false,
-            downloadError: 'Download failed',
-            status: 'Download failed',
-          );
-          break;
-        default:
-          break;
-      }
-    });
-  }
-
-  Future<void> _onDownloadComplete() async {
-    final path = await _downloadService.getModelPath();
-    final size = await _downloadService.getModelSize();
-    
-    await _settingsBox.put(AppConstants.keyModelDownloaded, true);
-    await _settingsBox.put(AppConstants.keyModelPath, path);
-
-    state = state.copyWith(
-      isDownloaded: true,
-      isDownloading: false,
-      downloadProgress: 1.0,
-      modelPath: path,
-      modelSize: size,
-      status: 'Download complete',
-    );
   }
 
   Future<void> downloadModel() async {
     if (state.isDownloading) return;
 
     state = state.copyWith(
-      downloadError: null,
-      status: 'Starting download...',
+      isDownloading: true,
+      downloadProgress: 0.0,
+      status: 'Downloading...',
     );
 
     await _downloadService.downloadModel(
       onProgress: (progress) {
-        // Progress is handled by stream listener
+        state = state.copyWith(
+          downloadProgress: progress,
+          status: 'Downloading: ${(progress * 100).toStringAsFixed(1)}%',
+        );
       },
-      onComplete: () {
-        // Completion is handled by stream listener
+      onComplete: () async {
+        final path = await _downloadService.getModelPath();
+        final size = await _downloadService.getModelSize();
+        await _settingsBox.put(AppConstants.keyModelDownloaded, true);
+        await _settingsBox.put(AppConstants.keyModelPath, path);
+        
+        state = state.copyWith(
+          isDownloaded: true,
+          isDownloading: false,
+          downloadProgress: 1.0,
+          modelPath: path,
+          modelSize: size,
+          status: 'Download complete',
+        );
       },
       onError: (error) {
         state = state.copyWith(
+          isDownloading: false,
           downloadError: error,
-          status: 'Download error: $error',
+          status: 'Download failed',
         );
       },
     );
   }
 
-  Future<void> cancelDownload() async {
+  void cancelDownload() {
     _downloadService.cancelDownload();
+    state = state.copyWith(
+      isDownloading: false,
+      status: 'Download cancelled',
+    );
   }
 
   Future<void> deleteModel() async {
@@ -172,58 +136,12 @@ class ModelNotifier extends StateNotifier<ModelState> {
       isLoaded: false,
       modelPath: null,
       modelSize: 0,
-      downloadProgress: 0.0,
       status: 'Model deleted',
-    );
-  }
-
-  Future<void> loadModel() async {
-    if (state.isLoaded || state.isLoading) return;
-    if (!state.isDownloaded || state.modelPath == null) {
-      state = state.copyWith(
-        downloadError: 'Model not downloaded',
-        status: 'Model not downloaded',
-      );
-      return;
-    }
-
-    state = state.copyWith(
-      isLoading: true,
-      status: 'Loading model...',
-    );
-
-    try {
-      await _aiService.initialize(state.modelPath!);
-      
-      state = state.copyWith(
-        isLoaded: true,
-        isLoading: false,
-        status: 'Model loaded successfully',
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        downloadError: 'Failed to load model: $e',
-        status: 'Failed to load model',
-      );
-    }
-  }
-
-  Future<void> unloadModel() async {
-    _aiService.dispose();
-    
-    state = state.copyWith(
-      isLoaded: false,
-      status: 'Model unloaded',
     );
   }
 
   String getFormattedModelSize() {
     return _downloadService.formatBytes(state.modelSize);
-  }
-
-  String getFormattedTotalSize() {
-    return _downloadService.formatBytes(AppConstants.modelSizeMB * 1024 * 1024);
   }
 
   void clearError() {
@@ -233,7 +151,6 @@ class ModelNotifier extends StateNotifier<ModelState> {
   @override
   void dispose() {
     _downloadService.dispose();
-    _aiService.dispose();
     super.dispose();
   }
 }

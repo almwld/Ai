@@ -47,11 +47,6 @@ class LearningNotifier extends StateNotifier<LearningState> {
 
   Future<void> _initialize() async {
     await _learningService.initialize();
-    
-    _refreshState();
-  }
-
-  void _refreshState() {
     state = state.copyWith(
       isInitialized: true,
       learningData: _learningService.getAllLearningData(),
@@ -60,95 +55,12 @@ class LearningNotifier extends StateNotifier<LearningState> {
     );
   }
 
-  Future<void> recordCommandUsage(
-    String commandType,
-    String input, {
-    bool success = true,
-    Map<String, dynamic> metadata = const {},
-  }) async {
-    await _learningService.recordCommandUsage(
-      commandType,
-      input,
-      success: success,
-      metadata: metadata,
+  void recordCommandUsage(String commandType, String input, {bool success = true}) {
+    _learningService.recordCommandUsage(commandType, input, success: success);
+    state = state.copyWith(
+      learningData: _learningService.getAllLearningData(),
+      statistics: _learningService.getStatistics(),
     );
-    
-    _refreshState();
-  }
-
-  LearningModel? getLearningData(String commandType) {
-    return _learningService.getLearningData(commandType);
-  }
-
-  List<MapEntry<String, LearningModel>> getMostUsedCommands({int limit = 5}) {
-    return _learningService.getMostUsedCommands(limit: limit);
-  }
-
-  List<MapEntry<String, LearningModel>> getMostSuccessfulCommands({int limit = 5}) {
-    return _learningService.getMostSuccessfulCommands(limit: limit);
-  }
-
-  List<MapEntry<String, LearningModel>> getRecentlyUsedCommands({int limit = 5}) {
-    return _learningService.getRecentlyUsedCommands(limit: limit);
-  }
-
-  List<String> getSuggestions(String input, {int limit = 5}) {
-    return _learningService.getSuggestions(input, limit: limit);
-  }
-
-  // Voice Profile Methods
-  Future<void> createVoiceProfile(String name, {Map<String, dynamic>? characteristics}) async {
-    await _learningService.createVoiceProfile(name, characteristics: characteristics);
-    _refreshState();
-  }
-
-  Future<void> updateVoiceProfile(
-    String id, {
-    String? name,
-    Map<String, dynamic>? characteristics,
-  }) async {
-    await _learningService.updateVoiceProfile(
-      id,
-      name: name,
-      characteristics: characteristics,
-    );
-    _refreshState();
-  }
-
-  Future<void> deleteVoiceProfile(String id) async {
-    await _learningService.deleteVoiceProfile(id);
-    _refreshState();
-  }
-
-  Future<void> incrementVoiceProfileUsage(String id) async {
-    await _learningService.incrementVoiceProfileUsage(id);
-    _refreshState();
-  }
-
-  VoiceProfileModel? getVoiceProfile(String id) {
-    return _learningService.getVoiceProfile(id);
-  }
-
-  // Data Management
-  Future<void> clearAllData() async {
-    await _learningService.clearAllData();
-    _refreshState();
-  }
-
-  String exportData() {
-    return _learningService.exportData();
-  }
-
-  Future<bool> importData(String jsonData) async {
-    final result = await _learningService.importData(jsonData);
-    if (result) {
-      _refreshState();
-    }
-    return result;
-  }
-
-  void clearError() {
-    state = state.copyWith(error: null);
   }
 
   @override
