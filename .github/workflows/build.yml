@@ -22,31 +22,145 @@ jobs:
           flutter-version: '3.22.0'
           channel: stable
       
-      - name: Create fresh Android project
-        run: |
-          # إنشاء مشروع مؤقت مع منصة android فقط
-          cd /tmp
-          flutter create --platforms=android --org com.maestro.ai --project-name temp_project .
-          
-          # التحقق من وجود مجلد android
-          ls -la /tmp/temp_project/
-          
-          # نسخ مجلد android إلى المشروع الأصلي
-          cd $GITHUB_WORKSPACE
-          rm -rf android ios linux macos web windows
-          cp -r /tmp/temp_project/android .
-          
-          # تنظيف
-          rm -rf /tmp/temp_project
-          
-          echo "✅ Android folder created successfully"
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       
-      - name: Create Kotlin services directory
+      - name: Create Android folder structure
         run: |
-          # إنشاء مجلدات الخدمات
+          # إنشاء هيكل مجلدات Android
           mkdir -p android/app/src/main/kotlin/com/maestro/ai/services
-          mkdir -p android/app/src/main/kotlin/com/maestro/ai/receivers
-          echo "✅ Directories created"
+          mkdir -p android/app/src/main/res/values
+          mkdir -p android/app/src/main/res/drawable
+          mkdir -p android/gradle/wrapper
+          
+          echo "✅ Android folders created"
+      
+      - name: Create build.gradle (project)
+        run: |
+          cat > android/build.gradle << 'GRADLE'
+          buildscript {
+              ext.kotlin_version = '1.9.0'
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:7.3.0'
+                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+              }
+          }
+          
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          
+          task clean(type: Delete) {
+              delete rootProject.buildDir
+          }
+          GRADLE
+          echo "✅ build.gradle (project) created"
+      
+      - name: Create settings.gradle
+        run: |
+          cat > android/settings.gradle << 'GRADLE'
+          include ':app'
+          GRADLE
+          echo "✅ settings.gradle created"
+      
+      - name: Create gradle-wrapper.properties
+        run: |
+          cat > android/gradle/wrapper/gradle-wrapper.properties << 'PROP'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.0-all.zip
+          PROP
+          echo "✅ gradle-wrapper.properties created"
+      
+      - name: Create app/build.gradle
+        run: |
+          cat > android/app/build.gradle << 'GRADLE'
+          plugins {
+              id 'com.android.application'
+              id 'kotlin-android'
+          }
+          
+          android {
+              namespace 'com.maestro.ai'
+              compileSdk 34
+              
+              defaultConfig {
+                  applicationId 'com.maestro.ai'
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 1
+                  versionName '1.0'
+              }
+              
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                  }
+              }
+              
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_8
+                  targetCompatibility JavaVersion.VERSION_1_8
+              }
+              
+              kotlinOptions {
+                  jvmTarget = '1.8'
+              }
+          }
+          
+          dependencies {
+              implementation 'androidx.core:core-ktx:1.12.0'
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'com.google.android.material:material:1.11.0'
+          }
+          GRADLE
+          echo "✅ app/build.gradle created"
+      
+      - name: Create AndroidManifest.xml
+        run: |
+          cat > android/app/src/main/AndroidManifest.xml << 'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+              package="com.maestro.ai">
+          
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.RECORD_AUDIO" />
+              <uses-permission android:name="android.permission.CALL_PHONE" />
+              <uses-permission android:name="android.permission.SEND_SMS" />
+              <uses-permission android:name="android.permission.READ_CONTACTS" />
+              <uses-permission android:name="android.permission.CAMERA" />
+              
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:label="Maestro AI"
+                  android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
+                  
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          XML
+          echo "✅ AndroidManifest.xml created"
       
       - name: Create MainActivity.kt
         run: |
@@ -54,232 +168,67 @@ jobs:
           package com.maestro.ai
           
           import android.os.Bundle
-          import io.flutter.embedding.android.FlutterActivity
-          import io.flutter.embedding.engine.FlutterEngine
-          import io.flutter.plugin.common.MethodChannel
-          import io.flutter.plugin.common.MethodCall
+          import androidx.appcompat.app.AppCompatActivity
           
-          class MainActivity : FlutterActivity() {
-              private val CHANNEL = "maestro_ai/native"
-              
+          class MainActivity : AppCompatActivity() {
               override fun onCreate(savedInstanceState: Bundle?) {
                   super.onCreate(savedInstanceState)
-              }
-              
-              override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
-                  super.configureFlutterEngine(flutterEngine)
-                  
-                  MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
-                      .setMethodCallHandler { call, result ->
-                          when (call.method) {
-                              "executeCommand" -> {
-                                  val args = call.arguments as? Map<*, *> ?: emptyMap<Any, Any>()
-                                  val command = args["command"] as? String ?: ""
-                                  val params = args["params"] as? Map<*, *> ?: emptyMap<Any, Any>()
-                                  
-                                  result.success(mapOf(
-                                      "success" to true,
-                                      "command" to command,
-                                      "message" to "Command executed: $command"
-                                  ))
-                              }
-                              "checkPermissions" -> {
-                                  result.success(mapOf(
-                                      "recordAudio" to true,
-                                      "makeCalls" to false,
-                                      "sendSms" to false,
-                                      "readContacts" to false,
-                                      "camera" to false
-                                  ))
-                              }
-                              "getDeviceInfo" -> {
-                                  result.success(mapOf(
-                                      "success" to true,
-                                      "manufacturer" to "Android",
-                                      "model" to "Emulator",
-                                      "androidVersion" to "14"
-                                  ))
-                              }
-                              "getBatteryStatus" -> {
-                                  result.success(mapOf(
-                                      "success" to true,
-                                      "level" to 85,
-                                      "isCharging" to true
-                                  ))
-                              }
-                              else -> result.notImplemented()
-                          }
-                      }
+                  setContentView(R.layout.activity_main)
               }
           }
           KOTLIN
           echo "✅ MainActivity.kt created"
       
-      - name: Create SystemCommandExecutor.kt
+      - name: Create layout file
         run: |
-          cat > android/app/src/main/kotlin/com/maestro/ai/services/SystemCommandExecutor.kt << 'KOTLIN'
-          package com.maestro.ai.services
-          
-          import android.content.Context
-          import android.content.Intent
-          import android.net.Uri
-          import android.util.Log
-          
-          class SystemCommandExecutor(private val context: Context) {
+          mkdir -p android/app/src/main/res/layout
+          cat > android/app/src/main/res/layout/activity_main.xml << 'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:gravity="center">
               
-              fun executeCommand(command: String, params: Map<String, Any>): Map<String, Any> {
-                  Log.d("MaestroAI", "Executing command: $command with params: $params")
-                  
-                  return when (command) {
-                      "OPEN_APP" -> openApp(params["packageName"] as? String ?: "")
-                      "MAKE_CALL" -> makeCall(params["phoneNumber"] as? String ?: "")
-                      "SEND_SMS" -> sendSms(params["phoneNumber"] as? String ?: "", params["message"] as? String ?: "")
-                      "TOGGLE_WIFI" -> toggleWifi(params["enable"] as? Boolean ?: false)
-                      "TOGGLE_BLUETOOTH" -> toggleBluetooth(params["enable"] as? Boolean ?: false)
-                      "SET_BRIGHTNESS" -> setBrightness(params["level"] as? Int ?: 128)
-                      "SET_VOLUME" -> setVolume(params["level"] as? Int ?: 50)
-                      "BATTERY_STATUS" -> getBatteryStatus()
-                      "STORAGE_INFO" -> getStorageInfo()
-                      "DEVICE_INFO" -> getDeviceInfo()
-                      else -> mapOf("success" to false, "error" to "Unknown command: $command")
-                  }
-              }
+              <TextView
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="Maestro AI"
+                  android:textSize="24sp"
+                  android:textStyle="bold" />
               
-              private fun openApp(packageName: String): Map<String, Any> {
-                  return try {
-                      val intent = context.packageManager.getLaunchIntentForPackage(packageName)
-                      if (intent != null) {
-                          intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                          context.startActivity(intent)
-                          mapOf("success" to true, "message" to "Opened $packageName")
-                      } else {
-                          mapOf("success" to false, "error" to "App not found: $packageName")
-                      }
-                  } catch (e: Exception) {
-                      mapOf("success" to false, "error" to e.message ?: "Unknown error")
-                  }
-              }
-              
-              private fun makeCall(phoneNumber: String): Map<String, Any> {
-                  return try {
-                      val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$phoneNumber"))
-                      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                      context.startActivity(intent)
-                      mapOf("success" to true, "message" to "Calling $phoneNumber")
-                  } catch (e: Exception) {
-                      mapOf("success" to false, "error" to e.message ?: "Call failed")
-                  }
-              }
-              
-              private fun sendSms(phoneNumber: String, message: String): Map<String, Any> {
-                  return mapOf("success" to true, "message" to "SMS would be sent to $phoneNumber: $message")
-              }
-              
-              private fun toggleWifi(enable: Boolean): Map<String, Any> {
-                  return mapOf("success" to true, "status" to enable, "message" to "WiFi ${if (enable) "enabled" else "disabled"}")
-              }
-              
-              private fun toggleBluetooth(enable: Boolean): Map<String, Any> {
-                  return mapOf("success" to true, "status" to enable, "message" to "Bluetooth ${if (enable) "enabled" else "disabled"}")
-              }
-              
-              private fun setBrightness(level: Int): Map<String, Any> {
-                  val newLevel = level.coerceIn(0, 255)
-                  return mapOf("success" to true, "level" to newLevel, "message" to "Brightness set to $newLevel")
-              }
-              
-              private fun setVolume(level: Int): Map<String, Any> {
-                  val newLevel = level.coerceIn(0, 100)
-                  return mapOf("success" to true, "level" to newLevel, "message" to "Volume set to $newLevel%")
-              }
-              
-              private fun getBatteryStatus(): Map<String, Any> {
-                  return mapOf("success" to true, "level" to 85, "isCharging" to false, "percentage" to "85%")
-              }
-              
-              private fun getStorageInfo(): Map<String, Any> {
-                  return mapOf("success" to true, "total" to "64 GB", "available" to "32 GB", "used" to "32 GB")
-              }
-              
-              private fun getDeviceInfo(): Map<String, Any> {
-                  return mapOf(
-                      "success" to true,
-                      "manufacturer" to "Generic",
-                      "model" to "Android Device",
-                      "androidVersion" to "14",
-                      "sdkVersion" to 34
-                  )
-              }
-          }
-          KOTLIN
-          echo "✅ SystemCommandExecutor.kt created"
-      
-      - name: Update AndroidManifest.xml
-        run: |
-          cat > android/app/src/main/AndroidManifest.xml << 'XML'
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-              package="com.maestro.ai">
-          
-              <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.RECORD_AUDIO" />
-              <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-              <uses-permission android:name="android.permission.CALL_PHONE" />
-              <uses-permission android:name="android.permission.SEND_SMS" />
-              <uses-permission android:name="android.permission.READ_CONTACTS" />
-              <uses-permission android:name="android.permission.CAMERA" />
-              <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-              <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-              <uses-permission android:name="android.permission.BLUETOOTH" />
-              <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
-              <uses-permission android:name="android.permission.WRITE_SETTINGS" />
-              
-              <application
-                  android:label="Maestro AI"
-                  android:name="${applicationName}"
-                  android:icon="@mipmap/ic_launcher"
-                  android:allowBackup="true"
-                  android:theme="@style/LaunchTheme"
-                  android:usesCleartextTraffic="true">
-                  
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true"
-                      android:launchMode="singleTop"
-                      android:theme="@style/LaunchTheme"
-                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
-                      android:hardwareAccelerated="true"
-                      android:windowSoftInputMode="adjustResize">
-                      
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
-                      </intent-filter>
-                  </activity>
-                  
-                  <meta-data
-                      android:name="flutterEmbedding"
-                      android:value="2" />
-              </application>
-          </manifest>
+              <TextView
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="Voice Controlled Assistant"
+                  android:textSize="16sp"
+                  android:layout_marginTop="16dp" />
+          </LinearLayout>
           XML
-          echo "✅ AndroidManifest.xml created"
+          echo "✅ activity_main.xml created"
+      
+      - name: Create styles.xml
+        run: |
+          cat > android/app/src/main/res/values/styles.xml << 'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="Theme.MaestroAI" parent="Theme.AppCompat.Light.DarkActionBar">
+                  <item name="colorPrimary">#6200EE</item>
+                  <item name="colorPrimaryDark">#3700B3</item>
+                  <item name="colorAccent">#03DAC5</item>
+              </style>
+          </resources>
+          XML
+          echo "✅ styles.xml created"
       
       - name: Update pubspec.yaml
         run: |
-          # إزالة llama_cpp_dart من pubspec.yaml إذا كانت موجودة
+          # إزالة llama_cpp_dart
           sed -i '/llama_cpp_dart/d' pubspec.yaml || true
           echo "✅ pubspec.yaml updated"
       
       - name: Get dependencies
         run: flutter pub get
-      
-      - name: Verify Android setup
-        run: |
-          echo "Checking Android structure..."
-          ls -la android/
-          ls -la android/app/src/main/kotlin/com/maestro/ai/
-          ls -la android/app/src/main/kotlin/com/maestro/ai/services/
-          echo "✅ Android verification complete"
       
       - name: Build APK
         run: flutter build apk --release
