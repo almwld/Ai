@@ -15,9 +15,6 @@ dependencies:
   audio_waveforms: ^1.0.0
   flutter_tts: ^3.8.5
   
-  # AI Model - استخدام نسخة متوافقة
-  llama_cpp_dart: ^0.0.7  # تم التعديل من 0.1.0 إلى 0.0.7
-  
   # UI/Animations
   flutter_animate: ^4.5.0
   shimmer: ^3.0.0
