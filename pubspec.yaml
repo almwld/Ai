@@ -15,8 +15,8 @@ dependencies:
   audio_waveforms: ^1.0.0
   flutter_tts: ^3.8.5
   
-  # AI Model
-  llama_cpp_dart: ^0.1.0
+  # AI Model - استخدام نسخة متوافقة
+  llama_cpp_dart: ^0.0.7  # تم التعديل من 0.1.0 إلى 0.0.7
   
   # UI/Animations
   flutter_animate: ^4.5.0
@@ -45,7 +45,6 @@ dependencies:
   intl: ^0.19.0
   share_plus: ^8.0.3
   url_launcher: ^6.2.6
-
 
 dev_dependencies:
   flutter_test:
