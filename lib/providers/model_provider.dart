@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../core/constants/app_constants.dart';
 import '../services/download_service.dart';
+import '../services/ai_service.dart';
 
 class ModelState {
   final bool isDownloaded;
@@ -57,6 +58,7 @@ final modelProvider = StateNotifierProvider<ModelNotifier, ModelState>((ref) {
 
 class ModelNotifier extends StateNotifier<ModelState> {
   final DownloadService _downloadService = DownloadService();
+  final AIService _aiService = AIService();
   late Box _settingsBox;
 
   ModelNotifier() : super(ModelState()) {
@@ -118,6 +120,47 @@ class ModelNotifier extends StateNotifier<ModelState> {
     );
   }
 
+  Future<void> loadModel() async {
+    if (state.isLoaded || state.isLoading) return;
+    if (!state.isDownloaded || state.modelPath == null) {
+      state = state.copyWith(
+        downloadError: 'Model not downloaded',
+        status: 'Model not downloaded',
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      isLoading: true,
+      status: 'Loading model...',
+    );
+
+    try {
+      await _aiService.initialize(state.modelPath!);
+      
+      state = state.copyWith(
+        isLoaded: true,
+        isLoading: false,
+        status: 'Model loaded successfully',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        downloadError: 'Failed to load model: $e',
+        status: 'Failed to load model',
+      );
+    }
+  }
+
+  Future<void> unloadModel() async {
+    _aiService.dispose();
+    
+    state = state.copyWith(
+      isLoaded: false,
+      status: 'Model unloaded',
+    );
+  }
+
   void cancelDownload() {
     _downloadService.cancelDownload();
     state = state.copyWith(
@@ -151,6 +194,7 @@ class ModelNotifier extends StateNotifier<ModelState> {
   @override
   void dispose() {
     _downloadService.dispose();
+    _aiService.dispose();
     super.dispose();
   }
 }
