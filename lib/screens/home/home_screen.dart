@@ -77,6 +77,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       body: SafeArea(
         child: Stack(
           children: [
+            // Animated background
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
@@ -92,6 +93,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                 ),
               ),
             ),
+
+            // Floating particles
             ...List.generate(15, (index) {
               return Positioned(
                 left: (index * 45.0) % MediaQuery.of(context).size.width,
@@ -111,8 +114,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                 ),
               );
             }),
+
             Column(
               children: [
+                // App bar
                 Padding(
                   padding: const EdgeInsets.all(20),
                   child: Row(
@@ -185,10 +190,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                     ],
                   ),
                 ),
+
+                // Main content
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Status text
                       Text(
                         _getStatusText(voiceProv, commandState),
                         style: TextStyle(
@@ -196,12 +204,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                           fontSize: 16,
                         ),
                       ).animate().fadeIn(),
+
                       const SizedBox(height: 20),
+
+                      // Glowing brain
                       GlowingBrain(
                         isListening: voiceProv.isListening,
                         pulseController: _pulseController,
                       ),
+
                       const SizedBox(height: 40),
+
+                      // Last command result
                       if (commandState.lastCommand != null)
                         CommandResultCard(
                           command: commandState.lastCommand!,
@@ -211,13 +225,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                           duration: 500.ms,
                           curve: Curves.easeOut,
                         ),
+
                       const SizedBox(height: 20),
+
+                      // Voice visualizer and mic button
                       VoiceVisualizer(
                         isListening: voiceProv.isListening,
                         onListeningStart: _startListening,
                         onListeningStop: _stopListening,
                       ),
+
                       const SizedBox(height: 20),
+
+                      // Quick commands grid
                       QuickCommandsGrid(
                         onCommandSelected: _executeQuickCommand,
                       ),

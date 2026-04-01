@@ -133,3 +133,7 @@ class VoiceProvider extends ChangeNotifier {
     super.dispose();
   }
 }
+
+final voiceProvider = ChangeNotifierProvider<VoiceProvider>((ref) {
+  return VoiceProvider();
+});
