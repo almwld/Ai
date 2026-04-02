@@ -6,15 +6,11 @@ class VoiceService {
   final SpeechToText _speech = SpeechToText();
   final FlutterTts _tts = FlutterTts();
   bool _isAvailable = false;
-  List<LocaleName> _availableLocales = [];
-  String _lastWords = '';
   bool _isListening = false;
 
-  // Stream controllers للحالة والأخطاء
   final _listeningStateController = StreamController<bool>.broadcast();
   final _errorController = StreamController<String>.broadcast();
 
-  // Getters للـ Streams
   Stream<bool> get listeningState => _listeningStateController.stream;
   Stream<String> get errorStream => _errorController.stream;
 
@@ -32,9 +28,6 @@ class VoiceService {
           }
         },
       );
-      if (_isAvailable) {
-        _availableLocales = await _speech.locales();
-      }
       await _tts.setLanguage('ar-SA');
       return _isAvailable;
     } catch (e) {
@@ -43,13 +36,9 @@ class VoiceService {
     }
   }
 
-  List<LocaleName> get availableLocales => _availableLocales;
-  String get lastWords => _lastWords;
-  bool get isListening => _isListening;
-
-  // جلب قائمة اللغات المتاحة كنصوص
   Future<List<String>> getAvailableLanguages() async {
-    return _availableLocales.map((locale) => locale.name).toList();
+    final locales = await _speech.locales();
+    return locales.map((l) => l.localeId).toList();
   }
 
   Future<void> startListening(Function(String) onResult) async {
@@ -57,7 +46,6 @@ class VoiceService {
     try {
       await _speech.listen(
         onResult: (result) {
-          _lastWords = result.recognizedWords;
           onResult(result.recognizedWords);
         },
         localeId: 'ar_SA',
@@ -80,13 +68,12 @@ class VoiceService {
     }
   }
 
-  // تعديل cancelListening لترجع Future<bool>
-  Future<bool> cancelListening() => stopListening();
+  Future<bool> cancelListening() async {
+    return stopListening();
+  }
 
-  Future<void> speak(String text, {double? rate, double? volume}) async {
+  Future<void> speak(String text) async {
     try {
-      if (rate != null) await _tts.setSpeechRate(rate);
-      if (volume != null) await _tts.setVolume(volume);
       await _tts.speak(text);
     } catch (e) {
       _errorController.add('خطأ في النطق: $e');
@@ -99,14 +86,6 @@ class VoiceService {
 
   Future<void> setLanguage(String language) async {
     await _tts.setLanguage(language);
-  }
-
-  Future<void> setSpeechRate(double rate) async {
-    await _tts.setSpeechRate(rate);
-  }
-
-  void clearLastWords() {
-    _lastWords = '';
   }
 
   void dispose() {
