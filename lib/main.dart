@@ -5,6 +5,8 @@ import 'package:maestro_ai/core/theme/app_theme.dart';
 import 'package:maestro_ai/screens/home/home_screen.dart';
 import 'package:maestro_ai/screens/settings/settings_screen.dart';
 import 'package:maestro_ai/screens/commands/command_history_screen.dart';
+import 'package:maestro_ai/screens/commands/custom_commands_screen.dart';
+import 'package:maestro_ai/screens/profile/profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,6 +14,7 @@ void main() async {
   await Hive.initFlutter();
   await Hive.openBox('settings');
   await Hive.openBox('commands');
+  await Hive.openBox('custom_commands');
   
   runApp(
     const ProviderScope(
@@ -35,6 +38,8 @@ class MaestroAIApp extends StatelessWidget {
         '/': (context) => const HomeScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/command_history': (context) => const CommandHistoryScreen(),
+        '/custom_commands': (context) => const CustomCommandsScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
     );
   }
