@@ -26,27 +26,27 @@ class AppRouter {
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
-      case splash:
+      case AppRouter.splash:
         return MaterialPageRoute(builder: (_) => const SplashScreen());
-      case onboarding:
+      case AppRouter.onboarding:
         return MaterialPageRoute(builder: (_) => const OnboardingScreen());
-      case download:
+      case AppRouter.download:
         return MaterialPageRoute(builder: (_) => const DownloadProgressScreen());
-      case home:
+      case AppRouter.home:
         return MaterialPageRoute(builder: (_) => const HomeScreen());
-      case commands:
+      case AppRouter.commands:
         return MaterialPageRoute(builder: (_) => const AllCommandsScreen());
-      case commandHistory:
+      case AppRouter.commandHistory:
         return MaterialPageRoute(builder: (_) => const CommandHistoryScreen());
-      case settings:
+      case AppRouter.settings:
         return MaterialPageRoute(builder: (_) => const SettingsScreen());
-      case permissions:
+      case AppRouter.permissions:
         return MaterialPageRoute(builder: (_) => const PermissionsScreen());
-      case appsManagement:
+      case AppRouter.appsManagement:
         return MaterialPageRoute(builder: (_) => const AppsManagementScreen());
-      case modelManagement:
+      case AppRouter.modelManagement:
         return MaterialPageRoute(builder: (_) => const ModelManagementScreen());
-      case profile:
+      case AppRouter.profile:
         return MaterialPageRoute(builder: (_) => const ProfileScreen());
       default:
         return MaterialPageRoute(builder: (_) => const Scaffold(body: Center(child: Text('Page not found'))));

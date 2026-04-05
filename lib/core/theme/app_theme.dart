@@ -3,19 +3,21 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // Primary Colors
-  static const Color primaryCyan = Color(0xFF00BCD4);
-  static const Color primaryPurple = Color(0xFF9C27B0);
-  static const Color primaryGold = Color(0xFFFFD700);
+  static const Color cyanAccent = Color(0xFF00BCD4);
+  static const Color purpleAccent = Color(0xFF9C27B0);
+  static const Color goldColor = Color(0xFFFFD700);
   
   // Secondary Colors
-  static const Color secondaryBlue = Color(0xFF2196F3);
-  static const Color secondaryGreen = Color(0xFF4CAF50);
-  static const Color secondaryOrange = Color(0xFFFF9800);
-  static const Color secondaryRed = Color(0xFFF44336);
+  static const Color successGreen = Color(0xFF4CAF50);
+  static const Color errorRed = Color(0xFFF44336);
+  static const Color warningOrange = Color(0xFFFF9800);
+  static const Color infoBlue = Color(0xFF2196F3);
   
   // Background Colors
-  static const Color backgroundDark = Color(0xFF121212);
-  static const Color backgroundLight = Color(0xFFF5F5F5);
+  static const Color deepNavy = Color(0xFF0A1929);
+  static const Color darkSlate = Color(0xFF2C3E50);
+  static const Color darkBackground = Color(0xFF121212);
+  static const Color lightBackground = Color(0xFFF5F5F5);
   static const Color surfaceDark = Color(0xFF1E1E1E);
   static const Color surfaceLight = Color(0xFFFFFFFF);
   
@@ -28,21 +30,25 @@ class AppTheme {
   static const Color textSecondary = Color(0xFFB0B0B0);
   static const Color textHint = Color(0xFF757575);
   
-  // Status Colors
-  static const Color success = Color(0xFF4CAF50);
-  static const Color error = Color(0xFFF44336);
-  static const Color warning = Color(0xFFFF9800);
-  static const Color info = Color(0xFF2196F3);
+  // Aliases for backward compatibility
+  static const Color primaryCyan = cyanAccent;
+  static const Color primaryPurple = purpleAccent;
+  static const Color secondaryBlue = infoBlue;
+  static const Color secondaryGreen = successGreen;
+  static const Color secondaryOrange = warningOrange;
+  static const Color secondaryRed = errorRed;
+  static const Color backgroundDark = darkBackground;
+  static const Color backgroundLight = lightBackground;
   
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [primaryCyan, primaryPurple],
+    colors: [cyanAccent, purpleAccent],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
   
   static const LinearGradient goldGradient = LinearGradient(
-    colors: [primaryGold, Color(0xFFFFA000)],
+    colors: [goldColor, Color(0xFFFFA000)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -51,14 +57,14 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      primaryColor: primaryCyan,
-      scaffoldBackgroundColor: backgroundLight,
+      primaryColor: cyanAccent,
+      scaffoldBackgroundColor: lightBackground,
       cardColor: cardLight,
       colorScheme: const ColorScheme.light(
-        primary: primaryCyan,
-        secondary: primaryPurple,
+        primary: cyanAccent,
+        secondary: purpleAccent,
         surface: surfaceLight,
-        error: error,
+        error: errorRed,
       ),
       textTheme: GoogleFonts.cairoTextTheme().copyWith(
         displayLarge: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
@@ -80,14 +86,6 @@ class AppTheme {
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.grey[100],
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-      ),
     );
   }
   
@@ -95,14 +93,14 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      primaryColor: primaryCyan,
-      scaffoldBackgroundColor: backgroundDark,
+      primaryColor: cyanAccent,
+      scaffoldBackgroundColor: darkBackground,
       cardColor: cardDark,
       colorScheme: const ColorScheme.dark(
-        primary: primaryCyan,
-        secondary: primaryPurple,
+        primary: cyanAccent,
+        secondary: purpleAccent,
         surface: surfaceDark,
-        error: error,
+        error: errorRed,
       ),
       textTheme: GoogleFonts.cairoTextTheme().copyWith(
         displayLarge: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: textPrimary),
@@ -123,14 +121,6 @@ class AppTheme {
         color: cardDark,
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.grey[800],
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
       ),
     );
   }
