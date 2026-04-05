@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/constants/command_categories.dart';
 
 class QuickCommandsGrid extends StatelessWidget {
   final Function(String) onCommandSelected;

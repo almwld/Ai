@@ -8,7 +8,6 @@ import 'widgets/glowing_brain.dart';
 import 'widgets/voice_visualizer.dart';
 import 'widgets/command_result_card.dart';
 import 'widgets/quick_commands_grid.dart';
-import 'widgets/golden_floating_button.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -52,22 +51,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     ref.read(commandProvider.notifier).executeCommand(command);
   }
 
-  void _openApps() {
-    Navigator.pushNamed(context, '/apps_management');
-  }
-
-  void _openSettings() {
-    Navigator.pushNamed(context, '/settings');
-  }
-
-  void _openCommands() {
-    Navigator.pushNamed(context, '/commands');
-  }
-
-  void _openHistory() {
-    Navigator.pushNamed(context, '/command_history');
-  }
-
   String _getStatusText(VoiceProvider voiceProv, CommandUIState commandState) {
     if (voiceProv.isListening) {
       return '🎤 استمع... تحدث الآن';
@@ -88,33 +71,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   Widget build(BuildContext context) {
     final voiceProv = ref.watch(voiceProvider);
     final commandState = ref.watch(commandProvider);
-
-    final quickActions = [
-      QuickAction(
-        icon: Icons.apps,
-        label: 'التطبيقات',
-        color: AppTheme.cyanAccent,
-        onTap: _openApps,
-      ),
-      QuickAction(
-        icon: Icons.settings,
-        label: 'الإعدادات',
-        color: AppTheme.purpleAccent,
-        onTap: _openSettings,
-      ),
-      QuickAction(
-        icon: Icons.mic,
-        label: 'الأوامر',
-        color: AppTheme.successGreen,
-        onTap: _openCommands,
-      ),
-      QuickAction(
-        icon: Icons.history,
-        label: 'السجل',
-        color: AppTheme.warningOrange,
-        onTap: _openHistory,
-      ),
-    ];
 
     return Scaffold(
       backgroundColor: AppTheme.deepNavy,
@@ -215,7 +171,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                           ),
                         ],
                       ),
-                      const SizedBox(width: 48),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.history, color: Colors.white70),
+                            onPressed: () {
+                              Navigator.pushNamed(context, '/command_history');
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.settings, color: Colors.white70),
+                            onPressed: () {
+                              Navigator.pushNamed(context, '/settings');
+                            },
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -274,12 +245,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                   ),
                 ),
               ],
-            ),
-
-            // Golden floating button
-            GoldenFloatingButton(
-              onCommandSelected: _executeQuickCommand,
-              actions: quickActions,
             ),
           ],
         ),

@@ -22,13 +22,10 @@ class AppTheme {
   static const Color lightSurface = Color(0xFFFFFFFF);
   static const Color lightCard = Color(0xFFFAFAFA);
 
-  // ألوان إضافية مطلوبة في الشاشات
-  static const Color darkSlate = Color(0xFF2C3E50);   // رمادي غامق مزرق
-  static const Color deepNavy = Color(0xFF0A1929);    // أزرق داكن جداً
-  static const Color textSecondary = Color(0xFF757575); // رمادي للنصوص الثانوية
-
-  // مرادف لـ darkCard
-  static const Color cardDark = darkCard;
+  static const Color darkSlate = Color(0xFF2C3E50);
+  static const Color deepNavy = Color(0xFF0A1929);
+  static const Color textSecondary = Color(0xFF757575);
+  static const Color cardDark = Color(0xFF2C2C2C);
 
   static ThemeData get lightTheme {
     return ThemeData(
@@ -37,7 +34,7 @@ class AppTheme {
       primaryColor: goldColor,
       scaffoldBackgroundColor: lightBackground,
       cardColor: lightCard,
-      cardTheme: const CardThemeData(
+      cardTheme: const CardTheme(
         color: lightCard,
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
@@ -59,7 +56,7 @@ class AppTheme {
       primaryColor: cyanAccent,
       scaffoldBackgroundColor: darkBackground,
       cardColor: darkCard,
-      cardTheme: const CardThemeData(
+      cardTheme: const CardTheme(
         color: darkCard,
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
