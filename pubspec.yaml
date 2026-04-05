@@ -1,5 +1,5 @@
 name: maestro_ai
-description: Maestro AI - مساعد شخصي ذكي يتحكم بالهاتف عبر الأوامر الصوتية
+description: Maestro AI - Professional Voice Assistant for Android
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -10,33 +10,71 @@ dependencies:
   flutter:
     sdk: flutter
   
-  # Voice & Speech - استخدام إصدارات متوافقة
-  speech_to_text: ^6.1.1
-  flutter_tts: ^3.8.5
+  # State Management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
   
-  # UI/Animations
-  flutter_animate: ^4.5.0
-  shimmer: ^3.0.0
-  
-  # Storage
+  # Local Storage
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   path_provider: ^2.1.3
+  shared_preferences: ^2.2.3
   
-  # State Management
-  flutter_riverpod: ^2.5.1
+  # Networking
+  dio: ^5.4.3+1
+  connectivity_plus: ^6.0.5
+  
+  # UI Components
+  flutter_animate: ^4.5.0
+  shimmer: ^3.0.0
+  lottie: ^3.1.0
+  google_fonts: ^6.2.1
+  
+  # Voice & Speech
+  speech_to_text: ^6.6.2
+  flutter_tts: ^3.8.5
+  audio_waveforms: ^1.0.0
+  
+  # Device Info
+  device_info_plus: ^10.1.0
+  package_info_plus: ^6.0.0
+  permission_handler: ^11.3.1
+  
+  # System Integration
+  android_intent_plus: ^5.1.0
+  wakelock_plus: ^1.2.5
+  url_launcher: ^6.2.6
+  share_plus: ^8.0.3
   
   # Utilities
-  permission_handler: ^11.3.1
-  device_info_plus: ^9.1.1
-  package_info_plus: ^5.0.1
-  android_intent_plus: ^4.0.3
-  url_launcher: ^6.2.6
-
+  intl: ^0.19.0
+  equatable: ^2.0.5
+  dartz: ^0.10.1
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+  flutter_lints: ^4.0.0
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.9
+  riverpod_generator: ^2.4.0
 
 flutter:
   uses-material-design: true
+  
+  assets:
+    - assets/animations/
+    - assets/icons/
+    - assets/fonts/
+  
+  fonts:
+    - family: Cairo
+      fonts:
+        - asset: assets/fonts/Cairo-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Cairo-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Cairo-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Cairo-SemiBold.ttf
+          weight: 600

@@ -1,28 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'core/theme/app_theme.dart';
-import 'screens/splash_screen.dart';
-import 'screens/onboarding/onboarding_screen.dart';
-import 'screens/onboarding/download_progress_screen.dart';
-import 'screens/home/home_screen.dart';
-import 'screens/commands/all_commands_screen.dart';
-import 'screens/commands/command_history_screen.dart';
-import 'screens/settings/settings_screen.dart';
-import 'screens/settings/permissions_screen.dart';
-import 'screens/settings/apps_management_screen.dart';
-import 'screens/settings/model_management_screen.dart';
+import 'package:maestro_ai/core/constants/app_constants.dart';
+import 'package:maestro_ai/core/theme/app_theme.dart';
+import 'package:maestro_ai/routes/app_router.dart';
+import 'package:maestro_ai/providers/providers.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize Hive
   await Hive.initFlutter();
-  
-  // Open Hive boxes
-  await Hive.openBox('settings');
-  await Hive.openBox('commands');
-  await Hive.openBox('learning');
+  await Hive.openBox(AppConstants.settingsBox);
+  await Hive.openBox(AppConstants.commandsBox);
+  await Hive.openBox(AppConstants.learningBox);
   
   runApp(
     const ProviderScope(
@@ -31,33 +22,29 @@ void main() async {
   );
 }
 
-class MaestroAIApp extends StatelessWidget {
+class MaestroAIApp extends ConsumerStatefulWidget {
   const MaestroAIApp({super.key});
 
   @override
+  ConsumerState<MaestroAIApp> createState() => _MaestroAIAppState();
+}
+
+class _MaestroAIAppState extends ConsumerState<MaestroAIApp> {
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Maestro AI',
+      title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.dark,
       locale: const Locale('ar', 'SA'),
       supportedLocales: const [
         Locale('ar', 'SA'),
         Locale('en', 'US'),
       ],
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const SplashScreen(),
-        '/onboarding': (context) => const OnboardingScreen(),
-        '/download': (context) => const DownloadProgressScreen(),
-        '/home': (context) => const HomeScreen(),
-        '/commands': (context) => const AllCommandsScreen(),
-        '/command_history': (context) => const CommandHistoryScreen(),
-        '/settings': (context) => const SettingsScreen(),
-        '/permissions': (context) => const PermissionsScreen(),
-        '/apps_management': (context) => const AppsManagementScreen(),
-        '/model_management': (context) => const ModelManagementScreen(),
-      },
+      initialRoute: AppRouter.splash,
+      onGenerateRoute: AppRouter.onGenerateRoute,
     );
   }
 }

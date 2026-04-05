@@ -46,7 +46,9 @@ class VoiceService {
     try {
       await _speech.listen(
         onResult: (result) {
-          onResult(result.recognizedWords);
+          if (result.finalResult) {
+            onResult(result.recognizedWords);
+          }
         },
         localeId: 'ar_SA',
         listenFor: const Duration(seconds: 30),

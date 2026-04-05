@@ -1,4 +1,4 @@
-name: Build Maestro AI
+name: Build Maestro AI Professional
 
 on:
   push:
@@ -28,70 +28,62 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
       
-      - name: Clean old files
+      - name: Clean old build
         run: |
           rm -rf android
           rm -rf build
           rm -rf .dart_tool
       
-      - name: Create fresh Android project
+      - name: Create Android project
         run: |
-          # إنشاء مشروع مؤقت في مسار مختلف
-          mkdir -p /tmp/flutter_temp
-          cd /tmp/flutter_temp
+          cd /tmp
           flutter create --platforms=android --org com.maestro.ai --project-name maestro_temp .
-          
-          # التحقق من وجود مجلد android
-          if [ -d "android" ]; then
-            echo "✅ Android folder found"
-            ls -la android/
-          else
-            echo "❌ Android folder not found!"
-            ls -la
-            exit 1
-          fi
-          
-          # نسخ مجلد android إلى مسار العمل
           cd $GITHUB_WORKSPACE
-          cp -r /tmp/flutter_temp/android .
+          cp -r /tmp/maestro_temp/android .
+          rm -rf /tmp/maestro_temp
           
-          # تنظيف
-          rm -rf /tmp/flutter_temp
+          # Create MainActivity
+          cat > android/app/src/main/kotlin/com/maestro/ai/MainActivity.kt << 'KOTLIN'
+          package com.maestro.ai
           
-          echo "✅ Android folder copied successfully"
-      
-      - name: Create simple pubspec.yaml
-        run: |
-          cat > pubspec.yaml << 'YAML'
-          name: maestro_ai
-          description: Maestro AI
-          publish_to: 'none'
-          version: 1.0.0+1
+          import io.flutter.embedding.android.FlutterActivity
+          import io.flutter.embedding.engine.FlutterEngine
+          import io.flutter.plugin.common.MethodChannel
           
-          environment:
-            sdk: '>=3.0.0 <4.0.0'
-          
-          dependencies:
-            flutter:
-              sdk: flutter
-          
-          dev_dependencies:
-            flutter_test:
-              sdk: flutter
-            flutter_lints: ^3.0.0
-          
-          flutter:
-            uses-material-design: true
-          YAML
+          class MainActivity : FlutterActivity() {
+              private val CHANNEL = "maestro_ai/native"
+              
+              override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+                  super.configureFlutterEngine(flutterEngine)
+                  
+                  MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+                      .setMethodCallHandler { call, result ->
+                          when (call.method) {
+                              "executeCommand" -> {
+                                  result.success(mapOf("success" to true))
+                              }
+                              "getDeviceInfo" -> {
+                                  result.success(mapOf(
+                                      "success" to true,
+                                      "model" to android.os.Build.MODEL,
+                                      "version" to android.os.Build.VERSION.RELEASE
+                                  ))
+                              }
+                              else -> result.notImplemented()
+                          }
+                      }
+              }
+          }
+          KOTLIN
       
       - name: Get dependencies
         run: flutter pub get
       
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --split-per-abi
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: maestro-ai
+          name: maestro-ai-professional
           path: build/app/outputs/flutter-apk/*.apk
