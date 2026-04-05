@@ -7,6 +7,8 @@ import 'package:maestro_ai/screens/settings/settings_screen.dart';
 import 'package:maestro_ai/screens/commands/command_history_screen.dart';
 import 'package:maestro_ai/screens/commands/custom_commands_screen.dart';
 import 'package:maestro_ai/screens/profile/profile_screen.dart';
+import 'package:maestro_ai/screens/notifications/notifications_screen.dart';
+import 'package:maestro_ai/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +17,8 @@ void main() async {
   await Hive.openBox('settings');
   await Hive.openBox('commands');
   await Hive.openBox('custom_commands');
+  
+  NotificationService().showTestNotification();
   
   runApp(
     const ProviderScope(
@@ -40,6 +44,7 @@ class MaestroAIApp extends StatelessWidget {
         '/command_history': (context) => const CommandHistoryScreen(),
         '/custom_commands': (context) => const CustomCommandsScreen(),
         '/profile': (context) => const ProfileScreen(),
+        '/notifications': (context) => const NotificationsScreen(),
       },
     );
   }
