@@ -28,28 +28,39 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
       
-      - name: Clean and create fresh Android project
+      - name: Clean old files
         run: |
           rm -rf android
           rm -rf build
+          rm -rf .dart_tool
+      
+      - name: Create fresh Android project
+        run: |
+          # إنشاء مشروع مؤقت في مسار مختلف
+          mkdir -p /tmp/flutter_temp
+          cd /tmp/flutter_temp
+          flutter create --platforms=android --org com.maestro.ai --project-name maestro_temp .
           
-          # إنشاء مشروع مؤقت
-          cd /tmp
-          flutter create --platforms=android --org com.maestro.ai --project-name temp_maestro .
+          # التحقق من وجود مجلد android
+          if [ -d "android" ]; then
+            echo "✅ Android folder found"
+            ls -la android/
+          else
+            echo "❌ Android folder not found!"
+            ls -la
+            exit 1
+          fi
           
-          # نسخ مجلد android
+          # نسخ مجلد android إلى مسار العمل
           cd $GITHUB_WORKSPACE
-          cp -r /tmp/temp_maestro/android .
-          
-          # حذف الملف المسبب للمشكلة
-          rm -f android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+          cp -r /tmp/flutter_temp/android .
           
           # تنظيف
-          rm -rf /tmp/temp_maestro
+          rm -rf /tmp/flutter_temp
           
-          echo "✅ Android folder ready"
+          echo "✅ Android folder copied successfully"
       
-      - name: Create simplified pubspec.yaml
+      - name: Create simple pubspec.yaml
         run: |
           cat > pubspec.yaml << 'YAML'
           name: maestro_ai
