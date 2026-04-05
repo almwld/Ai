@@ -28,60 +28,29 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
       
-      - name: Clean old android folder
+      - name: Clean and create fresh Android project
         run: |
           rm -rf android
           rm -rf build
-      
-      - name: Create fresh Flutter project and copy android
-        run: |
+          
           # إنشاء مشروع مؤقت
           cd /tmp
           flutter create --platforms=android --org com.maestro.ai --project-name temp_maestro .
           
-          # نسخ مجلد android إلى المشروع الأصلي
+          # نسخ مجلد android
           cd $GITHUB_WORKSPACE
           cp -r /tmp/temp_maestro/android .
+          
+          # حذف الملف المسبب للمشكلة
+          rm -f android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
           
           # تنظيف
           rm -rf /tmp/temp_maestro
           
-          echo "✅ Android folder created successfully"
+          echo "✅ Android folder ready"
       
-      - name: Create MainActivity.kt
+      - name: Create simplified pubspec.yaml
         run: |
-          cat > android/app/src/main/kotlin/com/maestro/ai/MainActivity.kt << 'KOTLIN'
-          package com.maestro.ai
-          
-          import io.flutter.embedding.android.FlutterActivity
-          import io.flutter.embedding.engine.FlutterEngine
-          import io.flutter.plugin.common.MethodChannel
-          
-          class MainActivity : FlutterActivity() {
-              private val CHANNEL = "maestro_ai/native"
-              
-              override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
-                  super.configureFlutterEngine(flutterEngine)
-                  
-                  MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
-                      .setMethodCallHandler { call, result ->
-                          when (call.method) {
-                              "executeCommand" -> {
-                                  result.success(mapOf("success" to true))
-                              }
-                              else -> result.notImplemented()
-                          }
-                      }
-              }
-          }
-          KOTLIN
-      
-      - name: Update pubspec.yaml
-        run: |
-          # إزالة llama_cpp_dart
-          sed -i '/llama_cpp_dart/d' pubspec.yaml || true
-          
-          # إضافة الحزم الأساسية فقط
           cat > pubspec.yaml << 'YAML'
           name: maestro_ai
           description: Maestro AI
@@ -94,10 +63,6 @@ jobs:
           dependencies:
             flutter:
               sdk: flutter
-            flutter_riverpod: ^2.5.1
-            hive: ^2.2.3
-            hive_flutter: ^1.1.0
-            path_provider: ^2.1.3
           
           dev_dependencies:
             flutter_test:
