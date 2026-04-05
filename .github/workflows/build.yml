@@ -28,204 +28,85 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
       
-      - name: Create Android folder structure
+      - name: Clean old android folder
         run: |
-          # إنشاء هيكل مجلدات Android
-          mkdir -p android/app/src/main/kotlin/com/maestro/ai/services
-          mkdir -p android/app/src/main/res/values
-          mkdir -p android/app/src/main/res/drawable
-          mkdir -p android/gradle/wrapper
-          
-          echo "✅ Android folders created"
+          rm -rf android
+          rm -rf build
       
-      - name: Create build.gradle (project)
+      - name: Create fresh Flutter project and copy android
         run: |
-          cat > android/build.gradle << 'GRADLE'
-          buildscript {
-              ext.kotlin_version = '1.9.0'
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:7.3.0'
-                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-              }
-          }
+          # إنشاء مشروع مؤقت
+          cd /tmp
+          flutter create --platforms=android --org com.maestro.ai --project-name temp_maestro .
           
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
+          # نسخ مجلد android إلى المشروع الأصلي
+          cd $GITHUB_WORKSPACE
+          cp -r /tmp/temp_maestro/android .
           
-          task clean(type: Delete) {
-              delete rootProject.buildDir
-          }
-          GRADLE
-          echo "✅ build.gradle (project) created"
-      
-      - name: Create settings.gradle
-        run: |
-          cat > android/settings.gradle << 'GRADLE'
-          include ':app'
-          GRADLE
-          echo "✅ settings.gradle created"
-      
-      - name: Create gradle-wrapper.properties
-        run: |
-          cat > android/gradle/wrapper/gradle-wrapper.properties << 'PROP'
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.0-all.zip
-          PROP
-          echo "✅ gradle-wrapper.properties created"
-      
-      - name: Create app/build.gradle
-        run: |
-          cat > android/app/build.gradle << 'GRADLE'
-          plugins {
-              id 'com.android.application'
-              id 'kotlin-android'
-          }
+          # تنظيف
+          rm -rf /tmp/temp_maestro
           
-          android {
-              namespace 'com.maestro.ai'
-              compileSdk 34
-              
-              defaultConfig {
-                  applicationId 'com.maestro.ai'
-                  minSdk 24
-                  targetSdk 34
-                  versionCode 1
-                  versionName '1.0'
-              }
-              
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-                  }
-              }
-              
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_1_8
-                  targetCompatibility JavaVersion.VERSION_1_8
-              }
-              
-              kotlinOptions {
-                  jvmTarget = '1.8'
-              }
-          }
-          
-          dependencies {
-              implementation 'androidx.core:core-ktx:1.12.0'
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.11.0'
-          }
-          GRADLE
-          echo "✅ app/build.gradle created"
-      
-      - name: Create AndroidManifest.xml
-        run: |
-          cat > android/app/src/main/AndroidManifest.xml << 'XML'
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-              package="com.maestro.ai">
-          
-              <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.RECORD_AUDIO" />
-              <uses-permission android:name="android.permission.CALL_PHONE" />
-              <uses-permission android:name="android.permission.SEND_SMS" />
-              <uses-permission android:name="android.permission.READ_CONTACTS" />
-              <uses-permission android:name="android.permission.CAMERA" />
-              
-              <application
-                  android:allowBackup="true"
-                  android:icon="@mipmap/ic_launcher"
-                  android:label="Maestro AI"
-                  android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
-                  
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          XML
-          echo "✅ AndroidManifest.xml created"
+          echo "✅ Android folder created successfully"
       
       - name: Create MainActivity.kt
         run: |
           cat > android/app/src/main/kotlin/com/maestro/ai/MainActivity.kt << 'KOTLIN'
           package com.maestro.ai
           
-          import android.os.Bundle
-          import androidx.appcompat.app.AppCompatActivity
+          import io.flutter.embedding.android.FlutterActivity
+          import io.flutter.embedding.engine.FlutterEngine
+          import io.flutter.plugin.common.MethodChannel
           
-          class MainActivity : AppCompatActivity() {
-              override fun onCreate(savedInstanceState: Bundle?) {
-                  super.onCreate(savedInstanceState)
-                  setContentView(R.layout.activity_main)
+          class MainActivity : FlutterActivity() {
+              private val CHANNEL = "maestro_ai/native"
+              
+              override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+                  super.configureFlutterEngine(flutterEngine)
+                  
+                  MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+                      .setMethodCallHandler { call, result ->
+                          when (call.method) {
+                              "executeCommand" -> {
+                                  result.success(mapOf("success" to true))
+                              }
+                              else -> result.notImplemented()
+                          }
+                      }
               }
           }
           KOTLIN
-          echo "✅ MainActivity.kt created"
-      
-      - name: Create layout file
-        run: |
-          mkdir -p android/app/src/main/res/layout
-          cat > android/app/src/main/res/layout/activity_main.xml << 'XML'
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:orientation="vertical"
-              android:gravity="center">
-              
-              <TextView
-                  android:layout_width="wrap_content"
-                  android:layout_height="wrap_content"
-                  android:text="Maestro AI"
-                  android:textSize="24sp"
-                  android:textStyle="bold" />
-              
-              <TextView
-                  android:layout_width="wrap_content"
-                  android:layout_height="wrap_content"
-                  android:text="Voice Controlled Assistant"
-                  android:textSize="16sp"
-                  android:layout_marginTop="16dp" />
-          </LinearLayout>
-          XML
-          echo "✅ activity_main.xml created"
-      
-      - name: Create styles.xml
-        run: |
-          cat > android/app/src/main/res/values/styles.xml << 'XML'
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <style name="Theme.MaestroAI" parent="Theme.AppCompat.Light.DarkActionBar">
-                  <item name="colorPrimary">#6200EE</item>
-                  <item name="colorPrimaryDark">#3700B3</item>
-                  <item name="colorAccent">#03DAC5</item>
-              </style>
-          </resources>
-          XML
-          echo "✅ styles.xml created"
       
       - name: Update pubspec.yaml
         run: |
           # إزالة llama_cpp_dart
           sed -i '/llama_cpp_dart/d' pubspec.yaml || true
-          echo "✅ pubspec.yaml updated"
+          
+          # إضافة الحزم الأساسية فقط
+          cat > pubspec.yaml << 'YAML'
+          name: maestro_ai
+          description: Maestro AI
+          publish_to: 'none'
+          version: 1.0.0+1
+          
+          environment:
+            sdk: '>=3.0.0 <4.0.0'
+          
+          dependencies:
+            flutter:
+              sdk: flutter
+            flutter_riverpod: ^2.5.1
+            hive: ^2.2.3
+            hive_flutter: ^1.1.0
+            path_provider: ^2.1.3
+          
+          dev_dependencies:
+            flutter_test:
+              sdk: flutter
+            flutter_lints: ^3.0.0
+          
+          flutter:
+            uses-material-design: true
+          YAML
       
       - name: Get dependencies
         run: flutter pub get
