@@ -11,6 +11,7 @@ import 'package:maestro_ai/screens/notifications/notifications_screen.dart';
 import 'package:maestro_ai/screens/categories/categories_screen.dart';
 import 'package:maestro_ai/screens/search/search_screen.dart';
 import 'package:maestro_ai/screens/about/about_screen.dart';
+import 'package:maestro_ai/screens/stats/stats_screen.dart';
 import 'package:maestro_ai/services/notification_service.dart';
 
 void main() async {
@@ -51,6 +52,7 @@ class MaestroAIApp extends StatelessWidget {
         '/categories': (context) => const CategoriesScreen(),
         '/search': (context) => const SearchScreen(),
         '/about': (context) => const AboutScreen(),
+        '/stats': (context) => const StatsScreen(),
       },
     );
   }
