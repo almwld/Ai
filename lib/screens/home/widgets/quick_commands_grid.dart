@@ -10,12 +10,12 @@ class QuickCommandsGrid extends StatelessWidget {
   });
 
   final List<Map<String, dynamic>> _quickCommands = const [
-    {'icon': Icons.wifi, 'label': 'واي فاي', 'command': 'TOGGLE_WIFI', 'params': {'enable': true}},
-    {'icon': Icons.bluetooth, 'label': 'بلوتوث', 'command': 'TOGGLE_BLUETOOTH', 'params': {'enable': true}},
-    {'icon': Icons.brightness_6, 'label': 'سطوع', 'command': 'SET_BRIGHTNESS', 'params': {'action': 'increase'}},
-    {'icon': Icons.volume_up, 'label': 'صوت', 'command': 'SET_VOLUME', 'params': {'action': 'increase'}},
-    {'icon': Icons.battery_full, 'label': 'بطارية', 'command': 'BATTERY_STATUS'},
-    {'icon': Icons.cleaning_services, 'label': 'تنظيف', 'command': 'CLEAR_RAM'},
+    {'icon': Icons.wifi, 'label': 'واي فاي', 'command': 'شغل الواي فاي'},
+    {'icon': Icons.bluetooth, 'label': 'بلوتوث', 'command': 'شغل البلوتوث'},
+    {'icon': Icons.brightness_6, 'label': 'سطوع', 'command': 'زود السطوع'},
+    {'icon': Icons.volume_up, 'label': 'صوت', 'command': 'ارفع الصوت'},
+    {'icon': Icons.battery_full, 'label': 'بطارية', 'command': 'كم البطارية'},
+    {'icon': Icons.cleaning_services, 'label': 'تنظيف', 'command': 'نظف الذاكرة'},
   ];
 
   @override
@@ -24,7 +24,7 @@ class QuickCommandsGrid extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: AppTheme.cardDark.withOpacity(0.5),
+        color: AppTheme.darkCard.withOpacity(0.5),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -32,11 +32,7 @@ class QuickCommandsGrid extends StatelessWidget {
         children: [
           Text(
             'أوامر سريعة',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -79,27 +75,14 @@ class _QuickCommandButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppTheme.cyanAccent.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.cyanAccent.withOpacity(0.3),
-              width: 1,
-            ),
+            border: Border.all(color: AppTheme.cyanAccent.withOpacity(0.3)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                color: AppTheme.cyanAccent,
-                size: 20,
-              ),
+              Icon(icon, color: AppTheme.cyanAccent, size: 20),
               const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                ),
-              ),
+              Text(label, style: const TextStyle(color: Colors.white, fontSize: 14)),
             ],
           ),
         ),

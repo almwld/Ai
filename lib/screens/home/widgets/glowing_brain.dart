@@ -45,11 +45,6 @@ class GlowingBrain extends StatelessWidget {
                   blurRadius: 60,
                   spreadRadius: 20,
                 ),
-                BoxShadow(
-                  color: AppTheme.purpleAccent.withOpacity(glowOpacity * 0.3),
-                  blurRadius: 40,
-                  spreadRadius: 10,
-                ),
               ],
             ),
             child: Center(
@@ -58,11 +53,8 @@ class GlowingBrain extends StatelessWidget {
                 height: 140,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [
-                      AppTheme.cyanAccent,
-                      AppTheme.purpleAccent.withOpacity(0.8),
-                    ],
+                  gradient: const LinearGradient(
+                    colors: [AppTheme.cyanAccent, AppTheme.purpleAccent],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
